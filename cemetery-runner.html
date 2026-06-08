@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>공동묘지 러너 (Cemetery Runner)</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #05060a; font-family: 'Trebuchet MS', sans-serif; }
+  #game { display: block; width: 100%; height: 100%; }
+
+  .overlay {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    color: #e8e8ef; z-index: 10; pointer-events: none;
+  }
+  .overlay.hidden { display: none; }
+
+  #hud {
+    position: absolute; top: 18px; left: 0; width: 100%;
+    display: flex; justify-content: space-between; padding: 0 22px;
+    color: #f3f3fb; z-index: 5; pointer-events: none;
+    text-shadow: 0 2px 6px #000;
+  }
+  #hud .stat { font-size: 15px; opacity: .85; letter-spacing: 1px; }
+  #hud .val { font-size: 30px; font-weight: 800; }
+  #speedTag { color: #9be7ff; }
+  #scoreTag { color: #ffd97a; }
+
+  .panel {
+    background: rgba(10, 8, 18, .82);
+    border: 1px solid rgba(155,231,255,.25);
+    border-radius: 18px;
+    padding: 34px 40px; max-width: 480px;
+    pointer-events: auto;
+    box-shadow: 0 18px 60px rgba(0,0,0,.6);
+    backdrop-filter: blur(4px);
+  }
+  .title { font-size: 40px; font-weight: 900; letter-spacing: 2px;
+    background: linear-gradient(90deg,#9be7ff,#c9a3ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .subtitle { margin-top: 6px; font-size: 15px; color: #9a9ab0; }
+  .keys { margin: 22px 0; font-size: 14px; color: #cfcfe0; line-height: 2; }
+  .keys b { color: #9be7ff; }
+  .big { font-size: 56px; font-weight: 900; color: #ff6b6b; }
+  .btn {
+    margin-top: 12px; display: inline-block; cursor: pointer;
+    padding: 13px 34px; border-radius: 999px; font-size: 17px; font-weight: 800;
+    color: #0b0a12; background: linear-gradient(90deg,#9be7ff,#c9a3ff);
+    border: none; pointer-events: auto; letter-spacing: 1px;
+  }
+  .btn:hover { filter: brightness(1.08); }
+  .small { font-size: 13px; color: #8a8aa0; margin-top: 14px; }
+  kbd { background:#1c1b2a; border:1px solid #3a3954; border-radius:6px; padding:1px 8px; font-size:13px; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div id="hud" class="hidden">
+  <div><div class="stat">스피드</div><div class="val" id="speedTag">0.0</div></div>
+  <div style="text-align:right"><div class="stat">점수</div><div class="val" id="scoreTag">0</div></div>
+</div>
+
+<div id="startScreen" class="overlay">
+  <div class="panel">
+    <div class="title">공동묘지 러너</div>
+    <div class="subtitle">CEMETERY RUNNER</div>
+    <div class="keys">
+      좌우 이동 <b>A / D</b> &nbsp;·&nbsp; 가속·감속 <b>W / S</b><br>
+      점프 <b>SPACE</b> (낮은 관은 뛰어넘기)<br>
+      구불구불한 길을 달리며 묘비를 피하고,<br>
+      <b>좌우에서 찌부시키는 벽</b>·움직이는 벽·틈새 벽을 통과하세요.<br>
+      속도는 점점 빨라집니다!
+    </div>
+    <button class="btn" id="startBtn">시작하기</button>
+    <div class="small">데스크탑에서 키보드로 플레이하세요</div>
+  </div>
+</div>
+
+<div id="gameOver" class="overlay hidden">
+  <div class="panel">
+    <div class="title" style="background:linear-gradient(90deg,#ff6b6b,#ffa36b);-webkit-background-clip:text;background-clip:text;">GAME OVER</div>
+    <div class="big" id="finalScore">0</div>
+    <div class="subtitle">최종 점수</div>
+    <div class="keys" style="margin-bottom:6px">최고 점수: <b id="bestScore">0</b></div>
+    <button class="btn" id="retryBtn">다시 하기</button>
+    <div class="small"><kbd>R</kbd> 키로도 다시 시작</div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+  "use strict";
+
+  // ================= Core setup =================
+  const canvas = document.getElementById('game');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0b14);
+  scene.fog = new THREE.Fog(0x0a0b14, 30, 95);
+
+  const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 400);
+
+  function resize() {
+    const w = window.innerWidth, h = window.innerHeight;
+    renderer.setSize(w, h);
+    camera.aspect = w / h; camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize); resize();
+
+  // ================= Lighting =================
+  scene.add(new THREE.AmbientLight(0x44506e, 0.95));
+
+  const moon = new THREE.DirectionalLight(0x9fb6ff, 1.0);
+  moon.position.set(-16, 30, 12);
+  moon.castShadow = true;
+  moon.shadow.mapSize.set(1024, 1024);
+  moon.shadow.camera.left = -40; moon.shadow.camera.right = 40;
+  moon.shadow.camera.top = 40; moon.shadow.camera.bottom = -40;
+  moon.shadow.camera.far = 120;
+  scene.add(moon);
+  scene.add(moon.target);
+
+  const ghostLight = new THREE.PointLight(0x44ff99, 0.5, 30);
+  scene.add(ghostLight);
+
+  const moonDisc = new THREE.Mesh(
+    new THREE.CircleGeometry(8, 40),
+    new THREE.MeshBasicMaterial({ color: 0xe6ecff })
+  );
+  scene.add(moonDisc);
+
+  // ================= Winding path definition =================
+  // Forward travel is along +d. World z = -d. Centre of path drifts in x.
+  const PATH_HW = 6.8;                 // path half-width
+  const EDGE = PATH_HW - 0.7;          // player lateral clamp
+  function centerX(d) {
+    return 9.0 * Math.sin(d * 0.016) + 5.0 * Math.sin(d * 0.0072 + 2.1) + 2.5 * Math.sin(d * 0.031 + 0.6);
+  }
+  function pathPoint(d) { return new THREE.Vector3(centerX(d), 0, -d); }
+
+  // ---- Ground ribbon that follows the winding centre line ----
+  const RIB_N = 60, RIB_STEP = 4;      // 60 cross sections * 4 units = 240u window
+  const ribGeo = new THREE.BufferGeometry();
+  const ribPos = new Float32Array(RIB_N * 2 * 3);
+  const ribIdx = [];
+  for (let i = 0; i < RIB_N - 1; i++) {
+    const a = i * 2, b = i * 2 + 1, c = (i + 1) * 2, e = (i + 1) * 2 + 1;
+    ribIdx.push(a, c, b,  b, c, e);
+  }
+  ribGeo.setAttribute('position', new THREE.BufferAttribute(ribPos, 3));
+  ribGeo.setIndex(ribIdx);
+  const ribbon = new THREE.Mesh(ribGeo, new THREE.MeshStandardMaterial({ color: 0x2c2722, roughness: 1 }));
+  ribbon.receiveShadow = true;
+  scene.add(ribbon);
+
+  // glowing edge strips
+  function edgeStrip() {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(RIB_N * 3), 3));
+    return new THREE.Line(g, new THREE.LineBasicMaterial({ color: 0x335a4a }));
+  }
+  const edgeL = edgeStrip(), edgeR = edgeStrip();
+  scene.add(edgeL); scene.add(edgeR);
+
+  // big surrounding grass plane (follows player)
+  const grass = new THREE.Mesh(
+    new THREE.PlaneGeometry(400, 400),
+    new THREE.MeshStandardMaterial({ color: 0x101c0e, roughness: 1 })
+  );
+  grass.rotation.x = -Math.PI / 2; grass.position.y = -0.06; grass.receiveShadow = true;
+  scene.add(grass);
+
+  function updateRibbon(playerD) {
+    const start = playerD - 40;
+    const pa = ribPos;
+    const lp = edgeL.geometry.attributes.position.array;
+    const rp = edgeR.geometry.attributes.position.array;
+    for (let i = 0; i < RIB_N; i++) {
+      const s = start + i * RIB_STEP;
+      const cx = centerX(s), z = -s;
+      const li = i * 6, ri = li + 3;
+      pa[li] = cx - PATH_HW; pa[li + 1] = 0; pa[li + 2] = z;
+      pa[ri] = cx + PATH_HW; pa[ri + 1] = 0; pa[ri + 2] = z;
+      lp[i*3] = cx - PATH_HW; lp[i*3+1] = 0.04; lp[i*3+2] = z;
+      rp[i*3] = cx + PATH_HW; rp[i*3+1] = 0.04; rp[i*3+2] = z;
+    }
+    ribGeo.attributes.position.needsUpdate = true;
+    ribGeo.computeVertexNormals();
+    edgeL.geometry.attributes.position.needsUpdate = true;
+    edgeR.geometry.attributes.position.needsUpdate = true;
+  }
+
+  // ================= Decorative dead trees =================
+  const treeMat = new THREE.MeshStandardMaterial({ color: 0x1a140e, roughness: 1 });
+  const trees = [];
+  function deadTree() {
+    const t = new THREE.Group();
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.45, 5.5, 6), treeMat);
+    trunk.position.y = 2.75; trunk.castShadow = true; t.add(trunk);
+    for (let i = 0; i < 5; i++) {
+      const br = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.18, 2.4, 5), treeMat);
+      br.position.set(0, 3.8 + i * 0.45, 0);
+      br.rotation.z = (Math.random() - 0.5) * 1.7;
+      br.rotation.x = (Math.random() - 0.5) * 1.7;
+      t.add(br);
+    }
+    scene.add(t); return t;
+  }
+  for (let i = 0; i < 18; i++) trees.push({ mesh: deadTree(), d: 0, side: 0, off: 0 });
+
+  // ================= Materials for obstacles =================
+  const stoneMat = new THREE.MeshStandardMaterial({ color: 0x73757e, roughness: 0.85 });
+  const stoneDark = new THREE.MeshStandardMaterial({ color: 0x4c4e57, roughness: 0.9 });
+  const coffinMat = new THREE.MeshStandardMaterial({ color: 0x3a2416, roughness: 0.8 });
+  const crossMat = new THREE.MeshStandardMaterial({ color: 0x5a5c66, roughness: 0.9 });
+  const wallMat = new THREE.MeshStandardMaterial({ color: 0x6b2630, roughness: 0.6, metalness: 0.2, emissive: 0x300a0e, emissiveIntensity: 0.5 });
+  const wallMat2 = new THREE.MeshStandardMaterial({ color: 0x2a2f3a, roughness: 0.7, metalness: 0.4 });
+
+  // ================= Player: black stick figure =================
+  const blackMat = new THREE.MeshStandardMaterial({ color: 0x0c0c10, roughness: 0.55 });
+  const player = new THREE.Group();
+  const limbs = {};
+  (function buildStickman() {
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.42, 20, 20), blackMat);
+    head.position.y = 2.55; head.castShadow = true; player.add(head);
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 1.2, 10), blackMat);
+    torso.position.y = 1.6; torso.castShadow = true; player.add(torso);
+    function limb(len) {
+      const p = new THREE.Group();
+      const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, len, 8), blackMat);
+      seg.position.y = -len / 2; seg.castShadow = true; p.add(seg);
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), blackMat);
+      cap.position.y = -len; p.add(cap);
+      return p;
+    }
+    limbs.armL = limb(1.0); limbs.armL.position.set(-0.13, 2.15, 0); player.add(limbs.armL);
+    limbs.armR = limb(1.0); limbs.armR.position.set(0.13, 2.15, 0); player.add(limbs.armR);
+    limbs.legL = limb(1.05); limbs.legL.position.set(-0.12, 1.0, 0); player.add(limbs.legL);
+    limbs.legR = limb(1.05); limbs.legR.position.set(0.12, 1.0, 0); player.add(limbs.legR);
+  })();
+  scene.add(player);
+
+  // ================= Game state =================
+  const state = {
+    running: false, over: false,
+    speed: 9, baseSpeed: 9, maxSpeed: 55, accel: 0.6,
+    d: 0,                 // forward distance travelled
+    lateral: 0, vLat: 0,  // lateral position + velocity (smooth)
+    py: 0, vy: 0, onGround: true,
+    score: 0, best: 0, runCycle: 0,
+    time: 0,
+  };
+
+  const keys = {};
+  window.addEventListener('keydown', (e) => {
+    const k = e.key.toLowerCase(); keys[k] = true;
+    if (k === ' ') e.preventDefault();
+    if (k === 'r' && state.over) restart();
+  });
+  window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
+
+  // ================= Obstacles =================
+  // Each obstacle works in path-space: d (forward), and lateral coords.
+  // o.blocked(time) -> array of [minLat,maxLat] currently blocking.
+  // o.clearHeight -> jump above this to pass. o.update(time) animates meshes.
+  const obstacles = [];
+  let nextSpawnD = 0;
+
+  function placeMeshAt(grp, d) {
+    grp.position.set(centerX(d), 0, -d);
+    scene.add(grp);
+  }
+
+  function spawnAt(d, type) {
+    const grp = new THREE.Group();
+    let o = { mesh: grp, d, halfD: 0.7, clearHeight: 999, type };
+
+    if (type === 'stone') {
+      const lat = (Math.random() * 2 - 1) * (EDGE - 1.4);
+      const base = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.4, 1.0), stoneDark);
+      base.position.set(lat, 0.2, 0); base.castShadow = true; grp.add(base);
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.4, 0.5), stoneMat);
+      slab.position.set(lat, 1.4, 0); slab.castShadow = true; grp.add(slab);
+      const top = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.5, 16, 1, false, 0, Math.PI), stoneMat);
+      top.rotation.z = Math.PI / 2; top.rotation.y = Math.PI / 2; top.position.set(lat, 2.6, 0); grp.add(top);
+      o.halfD = 0.6; o.lat = lat; o.halfLat = 1.25;
+      o.blocked = () => [[lat - o.halfLat, lat + o.halfLat]];
+
+    } else if (type === 'cross') {
+      const lat = (Math.random() * 2 - 1) * (EDGE - 1.2);
+      const v = new THREE.Mesh(new THREE.BoxGeometry(0.45, 3.2, 0.45), crossMat);
+      v.position.set(lat, 1.6, 0); v.castShadow = true; grp.add(v);
+      const h = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.45, 0.45), crossMat);
+      h.position.set(lat, 2.2, 0); h.castShadow = true; grp.add(h);
+      o.halfD = 0.4; o.lat = lat; o.halfLat = 0.95;
+      o.blocked = () => [[lat - o.halfLat, lat + o.halfLat]];
+
+    } else if (type === 'coffin') { // low -> jump over
+      const lat = (Math.random() * 2 - 1) * (EDGE - 1.2);
+      const box = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.0, 2.4), coffinMat);
+      box.position.set(lat, 0.5, 0); box.castShadow = true; grp.add(box);
+      const lid = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.22, 2.5), stoneDark);
+      lid.position.set(lat, 1.05, 0); grp.add(lid);
+      o.halfD = 1.25; o.lat = lat; o.halfLat = 1.05; o.clearHeight = 1.15; // jumpable
+      o.blocked = () => [[lat - o.halfLat, lat + o.halfLat]];
+
+    } else if (type === 'gapwall') { // full wall with one opening -> steer into gap
+      const gap = 3.4;
+      const gapCenter = (Math.random() * 2 - 1) * (EDGE - gap / 2);
+      const leftW = (gapCenter - gap / 2) - (-PATH_HW);
+      const rightW = (PATH_HW) - (gapCenter + gap / 2);
+      if (leftW > 0.1) {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(leftW, 3.4, 0.5), wallMat2);
+        m.position.set(-PATH_HW + leftW / 2, 1.7, 0); m.castShadow = true; grp.add(m);
+      }
+      if (rightW > 0.1) {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(rightW, 3.4, 0.5), wallMat2);
+        m.position.set(PATH_HW - rightW / 2, 1.7, 0); m.castShadow = true; grp.add(m);
+      }
+      o.halfD = 0.35;
+      o.blocked = () => [[-PATH_HW, gapCenter - gap / 2], [gapCenter + gap / 2, PATH_HW]];
+
+    } else if (type === 'crusher') { // two walls grind in from both sides
+      const maxC = PATH_HW - 1.1;     // leaves min centre gap ~2.2
+      o.phase = Math.random() * Math.PI * 2;
+      o.cyc = 1.6 + Math.random() * 0.8;
+      const wL = new THREE.Mesh(new THREE.BoxGeometry(PATH_HW, 3.6, 1.0), wallMat);
+      const wR = new THREE.Mesh(new THREE.BoxGeometry(PATH_HW, 3.6, 1.0), wallMat);
+      wL.castShadow = wR.castShadow = true; grp.add(wL); grp.add(wR);
+      o.halfD = 0.55;
+      o._c = (t) => (Math.sin(t * o.cyc + o.phase) * 0.5 + 0.5) * maxC;
+      o.update = (t) => {
+        const c = o._c(t);
+        // left wall inner edge at -PATH_HW + c ; wall spans width PATH_HW
+        wL.position.set(-PATH_HW + c - PATH_HW / 2, 1.8, 0);
+        wR.position.set(PATH_HW - c + PATH_HW / 2, 1.8, 0);
+      };
+      o.blocked = (t) => {
+        const c = o._c(t);
+        return [[-PATH_HW, -PATH_HW + c], [PATH_HW - c, PATH_HW]];
+      };
+
+    } else { // 'sweeper' : a block sliding left<->right across the path
+      o.phase = Math.random() * Math.PI * 2;
+      o.cyc = 1.3 + Math.random() * 0.7;
+      const span = 2.0;
+      const blk = new THREE.Mesh(new THREE.BoxGeometry(span * 2, 3.2, 0.8), wallMat);
+      blk.castShadow = true; grp.add(blk);
+      const amp = EDGE - span;
+      o.halfD = 0.45;
+      o._pos = (t) => Math.sin(t * o.cyc + o.phase) * amp;
+      o.update = (t) => { blk.position.set(o._pos(t), 1.7, 0); };
+      o.blocked = (t) => { const p = o._pos(t); return [[p - span, p + span]]; };
+    }
+
+    placeMeshAt(grp, d);
+    obstacles.push(o);
+  }
+
+  function chooseType() {
+    const t = (state.speed - state.baseSpeed) / (state.maxSpeed - state.baseSpeed); // 0..1 difficulty
+    const r = Math.random();
+    // early game: mostly static dodge + jump. later: more dynamic walls.
+    if (t < 0.18) {
+      return r < 0.45 ? 'stone' : r < 0.7 ? 'cross' : r < 0.9 ? 'coffin' : 'gapwall';
+    } else if (t < 0.5) {
+      return r < 0.3 ? 'stone' : r < 0.45 ? 'cross' : r < 0.6 ? 'coffin'
+           : r < 0.78 ? 'gapwall' : r < 0.9 ? 'crusher' : 'sweeper';
+    } else {
+      return r < 0.18 ? 'stone' : r < 0.3 ? 'coffin' : r < 0.5 ? 'gapwall'
+           : r < 0.75 ? 'crusher' : 'sweeper';
+    }
+  }
+
+  // ================= Reset / flow =================
+  function clearObstacles() { obstacles.forEach(o => scene.remove(o.mesh)); obstacles.length = 0; }
+
+  function seedTrees() {
+    trees.forEach((t, i) => {
+      t.d = state.d + 20 + i * 14;
+      t.side = Math.random() < 0.5 ? -1 : 1;
+      t.off = PATH_HW + 4 + Math.random() * 20;
+    });
+  }
+
+  function restart() {
+    state.running = true; state.over = false;
+    state.speed = state.baseSpeed; state.d = 0;
+    state.lateral = 0; state.vLat = 0;
+    state.py = 0; state.vy = 0; state.onGround = true;
+    state.score = 0; state.time = 0;
+    clearObstacles();
+    nextSpawnD = 32;
+    seedTrees();
+    document.getElementById('gameOver').classList.add('hidden');
+    document.getElementById('hud').classList.remove('hidden');
+  }
+
+  function startGame() {
+    document.getElementById('startScreen').classList.add('hidden');
+    restart();
+  }
+
+  function gameOver() {
+    state.running = false; state.over = true;
+    state.best = Math.max(state.best, Math.floor(state.score));
+    document.getElementById('finalScore').textContent = Math.floor(state.score);
+    document.getElementById('bestScore').textContent = state.best;
+    document.getElementById('gameOver').classList.remove('hidden');
+  }
+
+  document.getElementById('startBtn').addEventListener('click', startGame);
+  document.getElementById('retryBtn').addEventListener('click', restart);
+
+  // ================= Update =================
+  const clock = new THREE.Clock();
+
+  function update(dt) {
+    state.time += dt;
+    if (state.running) {
+      // difficulty ramp
+      state.speed = Math.min(state.maxSpeed, state.speed + state.accel * dt);
+
+      // forward speed with W/S boost & brake
+      let fwd = state.speed;
+      if (keys['w'] || keys['arrowup']) fwd *= 1.45;
+      if (keys['s'] || keys['arrowdown']) fwd *= 0.55;
+      state.d += fwd * dt;
+      state.score += state.speed * dt * 0.12;
+
+      // smooth lateral movement (A/D), velocity-based glide
+      let ix = 0;
+      if (keys['a'] || keys['arrowleft']) ix -= 1;
+      if (keys['d'] || keys['arrowright']) ix += 1;
+      const moveAccel = 70, friction = 8, maxLat = 17;
+      state.vLat += ix * moveAccel * dt;
+      state.vLat -= state.vLat * friction * dt;
+      state.vLat = THREE.MathUtils.clamp(state.vLat, -maxLat, maxLat);
+      state.lateral += state.vLat * dt;
+      if (state.lateral > EDGE) { state.lateral = EDGE; state.vLat = 0; }
+      if (state.lateral < -EDGE) { state.lateral = -EDGE; state.vLat = 0; }
+
+      // jump
+      const GRAV = 28, JUMP_V = 11.5;
+      if ((keys[' '] || keys['spacebar']) && state.onGround) { state.vy = JUMP_V; state.onGround = false; }
+      state.vy -= GRAV * dt;
+      state.py += state.vy * dt;
+      if (state.py <= 0) { state.py = 0; state.vy = 0; state.onGround = true; }
+    }
+
+    // ---- place player in world along winding path ----
+    const cx = centerX(state.d);
+    // tangent of centre line (for facing & lateral axis). Path is x = f(z), z = -d.
+    const dx = (centerX(state.d + 0.5) - centerX(state.d - 0.5)); // d(centerX)/dd
+    const tangent = new THREE.Vector3(-dx, 0, -1).normalize(); // forward dir in world
+    const right = new THREE.Vector3(tangent.z, 0, -tangent.x).normalize(); // perpendicular
+    const px = cx + right.x * state.lateral;
+    const pz = -state.d + right.z * state.lateral;
+    player.position.set(px, state.py, pz);
+    // face forward along path, lean into lateral motion
+    const faceYaw = Math.atan2(tangent.x, tangent.z) + THREE.MathUtils.clamp(-state.vLat * 0.03, -0.4, 0.4);
+    player.rotation.y = faceYaw;
+
+    // ---- running animation ----
+    if (state.onGround && state.running) {
+      state.runCycle += dt * (7 + state.speed * 0.32);
+      const s = Math.sin(state.runCycle) * 0.95;
+      limbs.legL.rotation.x = s; limbs.legR.rotation.x = -s;
+      limbs.armL.rotation.x = -s * 0.8; limbs.armR.rotation.x = s * 0.8;
+    } else if (!state.onGround) {
+      limbs.legL.rotation.x = -0.6; limbs.legR.rotation.x = -0.95;
+      limbs.armL.rotation.x = -1.4; limbs.armR.rotation.x = -1.4;
+    }
+
+    // ---- world streaming ----
+    updateRibbon(state.d);
+    grass.position.set(px, -0.06, pz);
+
+    // trees recycle
+    trees.forEach(t => {
+      if (t.d < state.d - 20) { t.d += trees.length * 14; t.side = Math.random() < 0.5 ? -1 : 1; t.off = PATH_HW + 4 + Math.random() * 20; }
+      const tcx = centerX(t.d);
+      t.mesh.position.set(tcx + t.side * t.off, 0, -t.d);
+    });
+
+    // ---- spawn obstacles ahead ----
+    if (state.running) {
+      while (nextSpawnD < state.d + 150) {
+        spawnAt(nextSpawnD, chooseType());
+        const gap = THREE.MathUtils.clamp(120 / state.speed * 1.6, 4.5, 11);
+        nextSpawnD += gap + Math.random() * 3;
+      }
+    }
+
+    // ---- animate + collide obstacles ----
+    const pHalfLat = 0.5, pHalfD = 0.5;
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+      const o = obstacles[i];
+      if (o.update) o.update(state.time);
+
+      if (o.d < state.d - 18) { scene.remove(o.mesh); obstacles.splice(i, 1); continue; }
+
+      if (state.running && Math.abs(o.d - state.d) < (o.halfD + pHalfD)) {
+        // can we clear by jump?
+        if (state.py > o.clearHeight + 0.05) continue;
+        const intervals = o.blocked(state.time);
+        const pl = state.lateral - pHalfLat, pr = state.lateral + pHalfLat;
+        for (const iv of intervals) {
+          if (pr > iv[0] && pl < iv[1]) { gameOver(); break; }
+        }
+      }
+    }
+
+    // ---- camera follows behind along the path ----
+    const camD = state.d - 10.5;
+    const ccx = centerX(camD);
+    const camTarget = new THREE.Vector3(ccx + state.lateral * 0.35, 6.0 + state.py * 0.25, -camD);
+    if (!camera.userData.init) { camera.position.copy(camTarget); camera.userData.init = true; }
+    camera.position.lerp(camTarget, Math.min(1, dt * 4.5));
+    const lookD = state.d + 10;
+    camera.lookAt(centerX(lookD), 1.6, -lookD);
+
+    // moon + ghost light follow
+    moonDisc.position.set(camera.position.x - 50, 55, -state.d - 130);
+    moon.position.set(px - 16, 30, -state.d + 12);
+    moon.target.position.set(px, 0, -state.d);
+    ghostLight.position.set(px, 4, -state.d);
+
+    // HUD
+    if (state.running) {
+      document.getElementById('speedTag').textContent = state.speed.toFixed(1);
+      document.getElementById('scoreTag').textContent = Math.floor(state.score);
+    }
+  }
+
+  function loop() {
+    const dt = Math.min(clock.getDelta(), 0.05);
+    update(dt);
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+
+  // initial preview
+  seedTrees();
+  updateRibbon(0);
+  loop();
+})();
+</script>
+</body>
+</html>

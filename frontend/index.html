@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gamini — 게임 포털</title>
+  <meta name="description" content="간단한 게임들을 모아 골라서 바로 플레이하는 게임 포털, Gamini" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body class="jit">
+  <div class="stage">
+    <!-- 헤더 + 본문은 app.js가 렌더 -->
+    <div id="app"></div>
+    <p class="footnote">© 2026 Gamini. 간단한 게임들을 모아 즐기는 포털.</p>
+  </div>
+
+  <!-- 플레이 모달 -->
+  <div class="play-modal hidden" id="playModal">
+    <div class="play-bar">
+      <div class="pb-title"><span id="playTitle">게임</span><span class="dot">.</span></div>
+      <div style="display:flex; gap:10px;">
+        <button class="btn" id="fullscreenBtn">전체화면</button>
+        <button class="btn go" id="closePlayBtn">✕ 나가기</button>
+      </div>
+    </div>
+    <div class="play-frame-wrap">
+      <iframe id="playFrame" title="게임 플레이" allowfullscreen></iframe>
+    </div>
+  </div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

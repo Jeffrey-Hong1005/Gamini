@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gamini — 클래식 포털 (방향 A)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Do+Hyeon&family=Jua&family=Noto+Sans+KR:wght@500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#222;
+    --ink-soft:#6f6f6f;
+    --paper:#f7f6f1;
+    --line:#2c2c2c;
+    --accent:#1fbf4f;
+    --accent-soft:#d4f5de;
+    --jitter:1;
+    /* font theme (overridden by body[data-font]) */
+    --f-head:'Black Han Sans', sans-serif;
+    --f-ui:'Jua', sans-serif;
+  }
+  body[data-font="gaming"]{ --f-head:'Do Hyeon',sans-serif; --f-ui:'Do Hyeon',sans-serif; }
+  body[data-font="clean"]{ --f-head:'Noto Sans KR',sans-serif; --f-ui:'Noto Sans KR',sans-serif; }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);color:var(--ink);
+    font-family:var(--f-ui);font-size:17px;line-height:1.45;font-weight:700;
+    background-image:
+      linear-gradient(to right, rgba(0,0,0,.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(0,0,0,.03) 1px, transparent 1px);
+    background-size:28px 28px;
+  }
+  body[data-font="clean"]{font-weight:500;}
+
+  h1,h2,.brandmark,.logo,.num,.hero-copy h1{font-family:var(--f-head);font-weight:900;}
+
+  /* ---------- sketch primitives ---------- */
+  .sk{ border:2.5px solid var(--line); border-radius:14px 10px 16px 9px; background:#fffef9; }
+  .hatch{ background:repeating-linear-gradient(45deg, rgba(0,0,0,.07) 0 8px, transparent 8px 16px), #fffef9; }
+  .ph{ display:flex;align-items:center;justify-content:center;text-align:center;color:var(--ink-soft);font-size:14px;letter-spacing:.5px;position:relative;overflow:hidden;font-family:var(--f-ui); }
+  .ph::after{ content:"";position:absolute;inset:0;
+    background:
+      linear-gradient(to top right, transparent calc(50% - 1px), rgba(0,0,0,.12) 50%, transparent calc(50% + 1px)),
+      linear-gradient(to top left, transparent calc(50% - 1px), rgba(0,0,0,.12) 50%, transparent calc(50% + 1px));
+    pointer-events:none; }
+  .ph.no-x::after{display:none;}
+  .pill{ display:inline-block;border:2px solid var(--line);border-radius:999px;padding:1px 12px;font-size:14px;background:#fff;white-space:nowrap; }
+  .pill.on{background:var(--accent);border-color:var(--accent);color:#08310f;}
+  .btn{ display:inline-flex;align-items:center;gap:6px;border:2.5px solid var(--line);border-radius:12px 9px 13px 8px;padding:6px 16px;background:#fff;font-family:var(--f-ui);font-weight:700;font-size:16px;cursor:pointer;color:var(--ink); }
+  .btn.go{background:var(--accent);border-color:var(--accent);color:#08310f;}
+  .scribble{ color:var(--ink-soft);font-weight:400; }
+  .tag{font-size:13px;color:var(--ink-soft);font-weight:400;}
+
+  body.jit .tilt:nth-child(3n){transform:rotate(calc(-.4deg * var(--jitter)));}
+  body.jit .tilt:nth-child(3n+1){transform:rotate(calc(.3deg * var(--jitter)));}
+  body.jit .tilt:nth-child(3n+2){transform:rotate(calc(-.15deg * var(--jitter)));}
+
+  /* ---------- toolbar ---------- */
+  .toolbar{ position:sticky;top:0;z-index:50;display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:12px 20px;background:rgba(247,246,241,.95);border-bottom:2.5px dashed var(--line);backdrop-filter:blur(3px); }
+  .brandmark{font-size:26px;letter-spacing:.5px;}
+  .brandmark .dot{color:var(--accent);}
+  .badge{font-family:var(--f-ui);font-weight:700;font-size:13px;border:2px solid var(--line);border-radius:8px;padding:2px 10px;background:#fff;}
+  .tweaks{margin-left:auto;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+  .twk{display:flex;align-items:center;gap:7px;font-family:var(--f-ui);font-size:14px;}
+  .hint{font-size:13px;color:var(--ink-soft);font-family:var(--f-ui);}
+  .swatches{display:flex;gap:6px;align-items:center;}
+  .sw{width:22px;height:22px;border-radius:50%;border:2.5px solid var(--line);cursor:pointer;}
+  .seg{display:flex;border:2.5px solid var(--line);border-radius:10px;overflow:hidden;}
+  .seg button{font-family:var(--f-ui);font-weight:700;font-size:14px;border:0;background:#fff;padding:4px 11px;cursor:pointer;color:var(--ink);border-right:2px solid var(--line);}
+  .seg button:last-child{border-right:0;}
+  .seg button[aria-pressed="true"]{background:var(--accent);color:#08310f;}
+  .toggle{display:flex;align-items:center;gap:6px;cursor:pointer;font-family:var(--f-ui);font-size:14px;user-select:none;}
+  .toggle input{width:17px;height:17px;accent-color:var(--accent);}
+
+  /* ---------- frame ---------- */
+  .stage{max-width:1280px;margin:0 auto;padding:22px 18px 80px;}
+  .browser{border:2.5px solid var(--line);border-radius:16px 12px 16px 12px;background:#fffef9;overflow:hidden;}
+  .urlbar{display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:2.5px solid var(--line);background:#f0efe8;}
+  .dots{display:flex;gap:6px;}
+  .dots i{width:11px;height:11px;border-radius:50%;border:2px solid var(--line);display:block;}
+  .urlfield{flex:1;border:2px solid var(--line);border-radius:999px;padding:3px 14px;background:#fff;font-size:14px;color:var(--ink-soft);font-family:var(--f-ui);font-weight:400;}
+
+  .site-head{display:flex;align-items:center;gap:20px;padding:14px 22px;border-bottom:2.5px solid var(--line);}
+  .site-head .logo{font-size:24px;}
+  .site-head .logo .dot{color:var(--accent);}
+  .nav{display:flex;gap:18px;font-size:16px;}
+  .nav span{cursor:pointer;}
+  .nav .active{color:var(--accent);border-bottom:3px solid var(--accent);padding-bottom:2px;}
+  .head-right{margin-left:auto;display:flex;align-items:center;gap:10px;}
+
+  .sec{padding:22px;}
+  .sec h2{font-size:30px;margin:0;letter-spacing:-.5px;}
+  .sec .sub{color:var(--ink-soft);font-size:15px;font-weight:400;}
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+  .arrows{margin-left:auto;display:flex;gap:6px;}
+  .arrows button{width:34px;height:34px;border-radius:10px 8px 11px 7px;border:2.5px solid var(--line);background:#fff;cursor:pointer;font-size:16px;font-family:var(--f-ui);}
+
+  .grid{display:grid;gap:16px;}
+  .cat-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+
+  .card{padding:10px;display:flex;flex-direction:column;gap:8px;}
+  .card .thumb{aspect-ratio:3/4;border-radius:10px 8px 11px 7px;}
+  .card .name{font-size:18px;line-height:1.15;}
+  .card .tags{display:flex;gap:6px;flex-wrap:wrap;}
+
+  .hero{position:relative;border-radius:14px 10px 16px 9px;overflow:hidden;}
+  .hero-ph{aspect-ratio:16/6;min-height:260px;}
+  .hero-copy{position:absolute;left:38px;top:50%;transform:translateY(-50%);max-width:62%;}
+  .hero-copy .kick{display:inline-block;margin-bottom:10px;}
+  .hero-copy h1{font-size:clamp(34px,5vw,64px);margin:0 0 12px;line-height:.98;letter-spacing:-1px;}
+  .hero-copy p{margin:0 0 18px;font-size:18px;font-weight:400;}
+  .hero-thumbs{display:grid;grid-template-columns:repeat(5,1fr);border-top:2.5px solid var(--line);}
+  .hero-thumbs .ht{padding:13px 16px;border-right:2.5px solid var(--line);cursor:pointer;}
+  .hero-thumbs .ht:last-child{border-right:0;}
+  .hero-thumbs .ht small{color:var(--ink-soft);font-weight:400;}
+  .hero-thumbs .ht b{display:block;font-size:18px;font-family:var(--f-head);font-weight:900;}
+  .hero-thumbs .ht.on{background:var(--accent-soft);}
+
+  .rank{display:flex;flex-direction:column;padding:8px 14px;}
+  .rank .rk{display:flex;align-items:center;gap:12px;padding:9px 4px;border-bottom:2px dashed rgba(0,0,0,.18);}
+  .rank .rk:last-child{border-bottom:0;}
+  .rank .num{font-size:26px;width:32px;text-align:center;}
+  .rank .num.top{color:var(--accent);}
+  .rank .mini{width:46px;height:46px;border-radius:8px;flex:none;}
+  .rank .nm{font-size:16px;}
+  .rank .delta{margin-left:auto;font-size:13px;color:var(--ink-soft);font-weight:400;}
+
+  .ev{padding:14px;display:flex;gap:12px;align-items:center;}
+  .ev .evph{width:90px;height:64px;border-radius:8px;flex:none;}
+  .ev b{font-size:16px;}
+
+  .footnote{text-align:center;color:var(--ink-soft);font-size:14px;font-weight:400;padding:18px;border-top:2.5px dashed var(--line);}
+
+  .two-col{display:grid;grid-template-columns:1fr 320px;gap:24px;align-items:start;}
+  .sidebar{position:sticky;top:80px;}
+
+  @media (max-width:880px){
+    .two-col{grid-template-columns:1fr;}
+    .sidebar{position:static;}
+    .hero-copy{position:static;transform:none;max-width:100%;padding:20px;}
+    .hero-thumbs{grid-template-columns:repeat(2,1fr);}
+    .hero-thumbs .ht:nth-child(2n){border-right:0;}
+    .nav{display:none;}
+    .grid.lib{grid-template-columns:repeat(2,1fr)!important;}
+    .grid.rec{grid-template-columns:repeat(3,1fr)!important;}
+  }
+  @media (max-width:560px){
+    .hero-thumbs{grid-template-columns:1fr;}
+    .grid.rec{grid-template-columns:repeat(2,1fr)!important;}
+  }
+</style>
+</head>
+<body class="jit" data-font="heavy">
+
+  <div class="toolbar">
+    <div class="brandmark">Gamini<span class="dot">.</span></div>
+    <span class="badge">방향 A · 클래식 포털</span>
+    <div class="tweaks">
+      <div class="twk"><span class="hint">글씨체</span>
+        <div class="seg" id="fontSeg">
+          <button data-font="heavy" aria-pressed="true">묵직</button>
+          <button data-font="gaming" aria-pressed="false">게이밍</button>
+          <button data-font="clean" aria-pressed="false">클린</button>
+        </div>
+      </div>
+      <div class="twk swatches"><span class="hint">액센트</span>
+        <span class="sw" style="background:#1fbf4f" data-accent="#1fbf4f" data-soft="#d4f5de"></span>
+        <span class="sw" style="background:#10c5b8" data-accent="#10c5b8" data-soft="#cdf3ef"></span>
+        <span class="sw" style="background:#ff8a3d" data-accent="#ff8a3d" data-soft="#ffe4cf"></span>
+        <span class="sw" style="background:#7b5bff" data-accent="#7b5bff" data-soft="#e2dbff"></span>
+      </div>
+      <label class="toggle"><input type="checkbox" id="jitToggle" checked> 손그림 효과</label>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="browser">
+      <div class="urlbar">
+        <div class="dots"><i></i><i></i><i></i></div>
+        <div class="urlfield">gamini.gg/games</div>
+        <span class="scribble" style="font-size:13px;">⌂ ☆ ⋯</span>
+      </div>
+      <div id="app"></div>
+    </div>
+    <p class="footnote">✎ 와이어프레임 — 구조·흐름 + 타이포 무게감 탐색용. 방향 확정되면 실제 이미지·컬러로 발전시킬게요.</p>
+  </div>
+
+<script>
+const GAMES = [
+  {n:"별빛 정원", g:["힐링","시뮬"]},{n:"크리스탈 러너", g:["러닝","아케이드"]},
+  {n:"몬스터 셰프", g:["요리","캐주얼"]},{n:"픽셀 용사단", g:["RPG","액션"]},
+  {n:"던전 베이커리", g:["타이쿤","경영"]},{n:"우주 택배", g:["퍼즐","어드벤처"]},
+  {n:"슬라임 왕국", g:["전략","캐주얼"]},{n:"네온 드리프트", g:["레이싱","아케이드"]},
+  {n:"하늘섬 모험", g:["어드벤처","RPG"]},{n:"냥냥 카페", g:["타이쿤","힐링"]},
+  {n:"좀비 농장", g:["농장","시뮬"]},{n:"마법학교 이야기", g:["RPG","스토리"]},
+  {n:"로봇 친구들", g:["퍼즐","캐주얼"]},{n:"바다마을 낚시왕", g:["낚시","힐링"]},
+  {n:"컬러 팡팡", g:["퍼즐","아케이드"]},{n:"무한의 탑", g:["액션","RPG"]},
+];
+const CATS = ["전체","RPG","캐주얼","액션","퍼즐","레이싱","시뮬","타이쿤","어드벤처","힐링"];
+const HEROES = [
+  {tag:"신작 출시", t:"별빛 정원", on:true},{tag:"대규모 업데이트", t:"무한의 탑"},
+  {tag:"시즌 시작", t:"네온 드리프트"},{tag:"콜라보", t:"픽셀 용사단"},{tag:"사전예약", t:"마법학교 이야기"},
+];
+
+const card=(g)=>`<div class="card sk tilt">
+  <div class="thumb ph hatch">게임 썸네일</div>
+  <div class="name">${g.n}</div>
+  <div class="tags">${g.g.map(t=>`<span class="tag">#${t}</span>`).join(" ")}</div></div>`;
+const catRow=()=>`<div class="cat-row">${CATS.map((c,i)=>`<span class="pill ${i===0?'on':''} tilt">${c}</span>`).join("")}</div>`;
+const rankList=(items)=>`<div class="rank sk">${items.map((g,i)=>`<div class="rk">
+    <span class="num ${i<3?'top':''}">${i+1}</span>
+    <span class="mini ph hatch no-x" style="font-size:0"></span>
+    <span class="nm">${g.n}</span>
+    <span class="delta">${i%3===0?'▲ 2':(i%3===1?'▬ 0':'▼ 1')}</span></div>`).join("")}</div>`;
+const eventCard=(t,b)=>`<div class="ev sk tilt"><div class="evph ph hatch">배너</div>
+    <div><b>${t}</b><div class="scribble" style="font-size:14px;">${b}</div></div></div>`;
+
+function siteHead(){
+  const items=["홈","게임","랭킹","이벤트","커뮤니티"];
+  return `<div class="site-head">
+    <div class="logo">Gamini<span class="dot">.</span></div>
+    <div class="nav">${items.map((x,i)=>`<span class="${i===1?'active':''}">${x}</span>`).join("")}</div>
+    <div class="head-right">
+      <span class="pill tilt">🔍 검색</span>
+      <span class="btn tilt">회원가입</span>
+      <span class="btn go tilt">로그인</span></div></div>`;
+}
+
+document.getElementById('app').innerHTML = siteHead() + `
+  <div class="sec">
+    <div class="hero sk">
+      <div class="hero-ph ph hatch no-x">
+        <div class="hero-copy">
+          <span class="kick pill on">${HEROES[0].tag}</span>
+          <h1>대표 게임<br>풀-블리드 배너</h1>
+          <p class="scribble">대형 키 비주얼 + 굵은 카피 한 줄. 자동 슬라이드.</p>
+          <span class="btn go">지금 플레이 ▶</span>
+        </div>
+      </div>
+      <div class="hero-thumbs">
+        ${HEROES.map(h=>`<div class="ht ${h.on?'on':''}"><small>${h.tag}</small><b>${h.t}</b></div>`).join("")}
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-head"><h2>추천 게임</h2><span class="pill on tilt">#신규 인기</span>
+      <div class="arrows"><button>‹</button><button>›</button></div></div>
+    <div class="grid rec" style="grid-template-columns:repeat(6,1fr);">
+      ${GAMES.slice(0,6).map(card).join("")}</div>
+  </div>
+
+  <div class="sec two-col">
+    <div>
+      <div class="sec-head"><h2>전체 게임</h2><span class="sub">장르로 추려보세요</span></div>
+      ${catRow()}
+      <div class="grid lib" style="grid-template-columns:repeat(4,1fr);">
+        ${GAMES.slice(0,12).map(card).join("")}</div>
+      <div style="text-align:center;margin-top:18px;"><span class="btn tilt">더 보기 ▾</span></div>
+    </div>
+    <aside class="sidebar">
+      <div class="sec-head"><h2 style="font-size:24px;">🏆 인기 차트</h2></div>
+      ${rankList(GAMES.slice(0,7))}
+      <div style="height:20px;"></div>
+      <div class="sec-head"><h2 style="font-size:24px;">📢 이벤트</h2></div>
+      ${eventCard("출석 이벤트","7일 출석하고 보상받기")}
+      <div style="height:10px;"></div>
+      ${eventCard("신규 게임 공지","별빛 정원 정식 오픈")}
+    </aside>
+  </div>`;
+
+/* font segmented control */
+const seg=document.getElementById('fontSeg');
+seg.addEventListener('click',e=>{
+  const b=e.target.closest('button'); if(!b)return;
+  [...seg.children].forEach(x=>x.setAttribute('aria-pressed', x===b));
+  document.body.dataset.font=b.dataset.font;
+});
+/* accent */
+document.querySelectorAll('.sw').forEach(s=>s.addEventListener('click',()=>{
+  document.documentElement.style.setProperty('--accent', s.dataset.accent);
+  document.documentElement.style.setProperty('--accent-soft', s.dataset.soft);
+}));
+/* jitter */
+document.getElementById('jitToggle').addEventListener('change',e=>{
+  document.body.classList.toggle('jit', e.target.checked);
+});
+</script>
+</body>
+</html>

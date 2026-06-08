@@ -1,0 +1,17 @@
+{
+  "name": "game-arcade-backend",
+  "version": "1.0.0",
+  "description": "간단한 게임 모음 사이트의 백엔드 (게임 목록 API + 정적 파일 서빙)",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}
