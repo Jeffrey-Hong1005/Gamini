@@ -1,0 +1,92 @@
+<svg width="1920" height="720" viewBox="0 0 1920 720" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b2550"/>
+      <stop offset="0.6" stop-color="#0e1428"/>
+      <stop offset="1" stop-color="#1a0e14"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffe79a"/>
+      <stop offset="0.5" stop-color="#f5d061"/>
+      <stop offset="1" stop-color="#e8a93a"/>
+    </linearGradient>
+    <linearGradient id="orange" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffb56b"/>
+      <stop offset="1" stop-color="#ff7a3c"/>
+    </linearGradient>
+    <linearGradient id="lava" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff7a2f"/>
+      <stop offset="0.5" stop-color="#e23a18"/>
+      <stop offset="1" stop-color="#7a0a02"/>
+    </linearGradient>
+    <radialGradient id="lavaGlow" cx="0.5" cy="1" r="0.7">
+      <stop offset="0" stop-color="#ff8c3a" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#ff8c3a" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="hero" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ff8585"/>
+      <stop offset="1" stop-color="#f0484a"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0" y="0" width="1920" height="720" fill="url(#sky)"/>
+
+  <!-- Stars -->
+  <g fill="#ffffff">
+    <circle cx="240" cy="120" r="4" opacity="0.7"/>
+    <circle cx="520" cy="80" r="3" opacity="0.5"/>
+    <circle cx="1500" cy="110" r="4" opacity="0.6"/>
+    <circle cx="1720" cy="200" r="3" opacity="0.5"/>
+    <circle cx="1380" cy="70" r="2.5" opacity="0.5"/>
+    <circle cx="160" cy="260" r="3" opacity="0.5"/>
+    <circle cx="1820" cy="320" r="3" opacity="0.45"/>
+  </g>
+
+  <!-- Left scene: climbing -->
+  <g>
+    <!-- platforms -->
+    <rect x="150" y="500" width="170" height="38" rx="12" fill="#3a8a4a"/>
+    <rect x="150" y="500" width="170" height="14" rx="7" fill="#56b56a"/>
+    <rect x="360" y="380" width="160" height="36" rx="12" fill="#6b4a2f"/>
+    <rect x="360" y="380" width="160" height="13" rx="7" fill="#8a6240"/>
+    <rect x="120" y="300" width="150" height="34" rx="12" fill="#3a6ea5"/>
+    <rect x="120" y="300" width="150" height="12" rx="6" fill="#5b9bd5"/>
+
+    <!-- coins -->
+    <circle cx="300" cy="250" r="18" fill="#f9a825"/><circle cx="300" cy="250" r="11" fill="#ffd95a"/>
+    <circle cx="470" cy="320" r="15" fill="#f9a825"/><circle cx="470" cy="320" r="9" fill="#ffd95a"/>
+
+    <!-- up arrows -->
+    <g fill="#f5d061" opacity="0.85">
+      <path d="M250 200 l34 -46 l34 46 l-19 0 l0 40 l-30 0 l0 -40 z"/>
+    </g>
+
+    <!-- hero character -->
+    <g transform="translate(230,70)">
+      <ellipse cx="70" cy="150" rx="52" ry="12" fill="#000000" opacity="0.28"/>
+      <rect x="18" y="18" width="104" height="104" rx="24" fill="url(#hero)"/>
+      <rect x="32" y="30" width="34" height="18" rx="9" fill="#ffffff" opacity="0.25"/>
+      <circle cx="58" cy="68" r="13" fill="#ffffff"/>
+      <circle cx="96" cy="68" r="13" fill="#ffffff"/>
+      <circle cx="61" cy="70" r="6.5" fill="#1a1a2e"/>
+      <circle cx="99" cy="70" r="6.5" fill="#1a1a2e"/>
+      <rect x="2" y="40" width="19" height="40" rx="9" fill="#f0484a" transform="rotate(-30 11 60)"/>
+      <rect x="119" y="40" width="19" height="40" rx="9" fill="#f0484a" transform="rotate(30 128 60)"/>
+    </g>
+  </g>
+
+  <!-- Title block (right) -->
+  <g font-family="Arial Black, Arial, sans-serif" font-weight="900" text-anchor="start">
+    <text x="664" y="338" font-size="190" fill="#0a0d1c" opacity="0.45">JUMP</text>
+    <text x="660" y="330" font-size="190" fill="url(#gold)" stroke="#7a4a00" stroke-width="6" paint-order="stroke">JUMP</text>
+    <text x="663" y="470" font-size="138" fill="#0a0d1c" opacity="0.45" letter-spacing="8">CLIMBER</text>
+    <text x="660" y="462" font-size="138" fill="url(#orange)" stroke="#6e2a00" stroke-width="5" paint-order="stroke" letter-spacing="8">CLIMBER</text>
+    <!-- tagline -->
+    <text x="666" y="540" font-family="Arial, sans-serif" font-weight="700" font-size="38" fill="#b8b8d0" letter-spacing="2">60-SECOND TIME ATTACK</text>
+  </g>
+
+  <!-- Lava bottom -->
+  <ellipse cx="960" cy="700" rx="1100" ry="160" fill="url(#lavaGlow)"/>
+  <path d="M0 640 Q240 612 480 636 T960 632 T1440 640 T1920 628 L1920 720 L0 720 Z" fill="url(#lava)"/>
+  <path d="M0 646 Q240 618 480 642 T960 638 T1440 646 T1920 634" fill="none" stroke="#ffb152" stroke-width="9" opacity="0.7"/>
+</svg>

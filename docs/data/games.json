@@ -12,7 +12,7 @@
         "3D",
         "아케이드"
       ],
-      "playUrl": "/games/cemeteryRunner/cemetery-runner.html",
+      "playUrl": "games/cemeteryRunner/cemetery-runner.html",
       "releaseDate": "2026-06-08",
       "rating": "전체이용가",
       "featured": true,
@@ -31,9 +31,9 @@
         "타임어택",
         "캐주얼"
       ],
-      "thumbnail": "/games/jumpingAI/logo.png",
-      "banner": "/games/jumpingAI/banner.png",
-      "playUrl": "/games/jumpingAI/index.html",
+      "thumbnail": "games/jumpingAI/logo.png",
+      "banner": "games/jumpingAI/banner.png",
+      "playUrl": "games/jumpingAI/index.html",
       "releaseDate": "2026-06-02",
       "rating": "전체이용가",
       "featured": true,

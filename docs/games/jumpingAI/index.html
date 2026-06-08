@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>점프 클라이머 - 60초 타임어택</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      height: 100%;
+      font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+      background: #0e1428;
+      color: #eaeaea;
+      overflow: hidden;
+    }
+    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 16px; }
+    .container { display: flex; gap: 24px; align-items: flex-start; max-width: 1100px; width: 100%; }
+    .game-wrap {
+      position: relative;
+      background: #0f0f1e;
+      border: 2px solid #2d2d4a;
+      border-radius: 12px;
+      overflow: hidden;
+      max-height: 95vh;       /* 윈도우 작은 화면에서도 HUD까지 보이도록 */
+    }
+    canvas {
+      display: block;
+      max-width: 100%;
+      max-height: 95vh;
+      height: auto;
+      width: auto;
+    }
+    .hud {
+      position: absolute; top: 12px; left: 12px; right: 12px;
+      display: flex; justify-content: space-between; align-items: flex-start;
+      pointer-events: none; font-size: 18px; font-weight: 700;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.7);
+      z-index: 5;
+      color: #eaeaea;
+    }
+    .hud .cell { background: rgba(15,15,30,0.55); padding: 6px 10px; border-radius: 6px; }
+    .hud .label { opacity: 0.7; font-weight: 500; font-size: 11px; }
+    .hud .timer.warn { color: #ff9a3c; }
+    .hud .timer.danger { color: #ff5252; animation: pulse 0.6s infinite; }
+    @keyframes pulse { 50% { opacity: 0.5; } }
+    .overlay {
+      position: absolute; inset: 0; background: rgba(10, 14, 30, 0.92);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px; padding: 24px; text-align: center; backdrop-filter: blur(2px);
+    }
+    .overlay.hidden { display: none; }
+    .overlay h1 { font-size: 30px; color: #f5d061; margin-bottom: 4px; }
+    .overlay h2 { font-size: 22px; color: #ff8c5a; }
+    .overlay p { color: #b8b8d0; font-size: 14px; line-height: 1.55; }
+    .overlay .big-score { font-size: 48px; font-weight: 800; color: #f5d061; margin: 6px 0; }
+    button, input { font-family: inherit; font-size: 15px; padding: 10px 20px; border: none; border-radius: 8px; outline: none; }
+    button { background: #f5d061; color: #1a1a2e; font-weight: 700; cursor: pointer; transition: transform 0.1s, background 0.2s; }
+    button:hover { background: #fde08a; }
+    button:active { transform: scale(0.97); }
+    button.secondary { background: #2d2d4a; color: #eaeaea; }
+    button.secondary:hover { background: #3d3d6a; }
+    input { background: #1a1a2e; color: #eaeaea; border: 1.5px solid #3d3d6a; width: 220px; text-align: center; }
+    input:focus { border-color: #f5d061; }
+    .leaderboard { width: 320px; background: #0f0f1e; border: 2px solid #2d2d4a; border-radius: 12px; padding: 18px; max-height: 700px; display: flex; flex-direction: column; }
+    .leaderboard h3 { color: #f5d061; margin-bottom: 4px; font-size: 18px; }
+    .leaderboard .sub { color: #8888a8; font-size: 12px; margin-bottom: 14px; }
+    .leaderboard ol { list-style: none; flex: 1; overflow-y: auto; }
+    .leaderboard li { display: flex; justify-content: space-between; align-items: center; padding: 9px 8px; border-bottom: 1px solid #1a1a35; font-size: 14px; }
+    .leaderboard li .rank { color: #8888a8; width: 28px; font-weight: 700; }
+    .leaderboard li .name { flex: 1; margin-left: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .leaderboard li .score { color: #f5d061; font-weight: 700; }
+    .leaderboard li.top-1 .rank { color: #ffd700; }
+    .leaderboard li.top-2 .rank { color: #c0c0c0; }
+    .leaderboard li.top-3 .rank { color: #cd7f32; }
+    .leaderboard li.me { background: rgba(245, 208, 97, 0.08); border-radius: 6px; }
+    .status { font-size: 12px; color: #8888a8; margin-top: 12px; min-height: 16px; }
+    .form-row { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+    .button-row { display: flex; gap: 8px; }
+    .controls-hint { font-size: 12px; color: #8888a8; margin-top: 4px; line-height: 1.6; }
+    .legend { font-size: 11px; color: #b8b8d0; margin-top: 6px; line-height: 1.7; text-align: left; }
+    .legend span { font-weight: 700; }
+    .trap-banner {
+      position: absolute;
+      top: 50%;
+      left: 100%;
+      transform: translateY(-50%);
+      background: #ffffff;
+      color: #111;
+      font-weight: 800;
+      font-size: 22px;
+      padding: 16px 30px;
+      border-radius: 8px;
+      box-shadow: 0 6px 24px rgba(0,0,0,0.5);
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 100;
+      letter-spacing: 0.5px;
+    }
+    .trap-banner.hidden { display: none; }
+    .trap-banner.scrolling { animation: trapScroll 5.5s linear forwards; }
+    @keyframes trapScroll {
+      0%   { left: 100%; transform: translate(0, -50%); }
+      100% { left: -10%; transform: translate(-100%, -50%); }
+    }
+    .taunt-banner {
+      position: absolute;
+      top: 22%;
+      left: 100%;
+      transform: translateY(-50%);
+      background: rgba(255, 255, 255, 0.88);
+      color: #111;
+      font-weight: 700;
+      font-size: 17px;
+      padding: 9px 18px;
+      border-radius: 6px;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.4);
+      white-space: nowrap;
+      pointer-events: none;
+      z-index: 50;
+      letter-spacing: 0.3px;
+    }
+    .taunt-banner.hidden { display: none; }
+    .taunt-banner.scrolling { animation: tauntScroll 4.5s linear forwards; }
+    @keyframes tauntScroll {
+      0%   { left: 100%; transform: translate(0, -50%); }
+      100% { left: -10%; transform: translate(-100%, -50%); }
+    }
+    @media (max-width: 900px) {
+      .container { flex-direction: column; align-items: center; }
+      .leaderboard { width: 100%; max-width: 560px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="game-wrap">
+      <canvas id="game" width="600" height="880"></canvas>
+      <div class="hud">
+        <div class="cell">
+          <div class="label">남은 시간</div>
+          <div id="timeDisplay" class="timer">60.0</div>
+        </div>
+        <div class="cell" style="text-align: center;">
+          <div class="label">현재 높이</div>
+          <div id="heightDisplay">0 m</div>
+        </div>
+        <div class="cell" style="text-align: right;">
+          <div class="label">내 최고</div>
+          <div id="bestDisplay">0 m</div>
+        </div>
+      </div>
+
+      <div id="startOverlay" class="overlay">
+        <h1>점프 클라이머</h1>
+        <p>60초 안에 최대한 높이 — 더블 점프 가능!</p>
+        <div class="legend">
+          <div>🟫 <span>일반 발판</span> — 안전</div>
+          <div>🟧 <span>부서지는 발판</span> (300m+) — 밟으면 0.5초 뒤 무너짐</div>
+          <div>🟦 <span>움직이는 발판</span> (600m+) — 좌우 슬라이드</div>
+          <div>⚫ <span>가시 발판</span> (450m+) — 닿으면 즉사</div>
+          <div>🟩 <span>트램펄린</span> (700m+) — 슈퍼 점프 + 점프 재충전</div>
+          <div>☄️ <span>운석</span> (800m+) — 위에서 떨어짐 (경고 표시 후)</div>
+          <div>🟡 <span>시간 코인</span> (200m+) — +3.5초, 10~15m마다 등장</div>
+          <div>🔥 <span>용암</span> — 차오름, 닿으면 즉사</div>
+        </div>
+        <div class="form-row">
+          <input id="nicknameInput" placeholder="닉네임 (최대 10자)" maxlength="10" />
+          <button id="startBtn">시작</button>
+          <div class="controls-hint">← → 또는 A D 로 이동<br/>↑ / 스페이스바로 점프 (공중에서 한 번 더 가능)</div>
+        </div>
+      </div>
+
+      <div id="trapBanner" class="trap-banner hidden">응 넌 800m 못찍어 ㅋㅋ</div>
+      <div id="tauntBanner" class="taunt-banner hidden"></div>
+
+      <div id="gameOverOverlay" class="overlay hidden">
+        <h2 id="gameOverTitle">시간 종료!</h2>
+        <p><span id="finalNickname">-</span>님의 최고 높이</p>
+        <div class="big-score" id="finalScore">0 m</div>
+        <div id="submitStatus" class="status"></div>
+        <div class="button-row">
+          <button id="restartBtn">다시 도전</button>
+          <button id="changeNameBtn" class="secondary">닉네임 변경</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="leaderboard">
+      <h3>전체 랭킹 TOP 20</h3>
+      <div class="sub">친구들과 공유되는 실시간 순위</div>
+      <ol id="leaderboardList">
+        <li style="opacity:0.5;">불러오는 중...</li>
+      </ol>
+      <div id="dbStatus" class="status"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getDatabase, ref, push, query, orderByChild, limitToLast, onValue, serverTimestamp
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+    // ▼▼▼ 여기에 본인 Firebase 설정을 붙여넣으세요 ▼▼▼
+    const firebaseConfig = {
+      apiKey: "AIzaSyC4pAR0cUYoZFue3_Xmo8Jv0RRVvJUCsdE",
+      authDomain: "jumpingai.firebaseapp.com",
+      databaseURL: "https://jumpingai-default-rtdb.firebaseio.com",
+      projectId: "jumpingai",
+      storageBucket: "jumpingai.firebasestorage.app",
+      messagingSenderId: "506603028791",
+      appId: "1:506603028791:web:d9320482e22c9378129ab2"
+    };
+    // ▲▲▲ 여기까지 ▲▲▲
+
+    const SCORES_NODE = "scores";
+
+    // 고도별 도발 메시지 (100m마다 등장)
+    const TAUNT_MESSAGES = {
+      100: "삼각김밥은 몸에 안좋다고 ㅋㅋㅋ 받아들이고 그냥 외우라고 ㅋㅋ.",
+      200: "삼각김밥은 몸에 안좋다고 ㅋㅋㅋ 받아들이고 그냥 외우라고 ㅋㅋ.",
+      300: "삼각김밥은 몸에 안좋다고 ㅋㅋㅋ 받아들이고 그냥 외우라고 ㅋㅋ.",
+      400: "삼각김밥은 몸에 안좋다고 ㅋㅋㅋ 받아들이고 그냥 외우라고 ㅋㅋ.",
+      500: "삼각김밥은 몸에 안좋다고 ㅋㅋㅋ 받아들이고 그냥 외우라고 ㅋㅋ.",
+      600: "삼각김밥은 몸에 안좋다고 ㅋㅋㅋ 받아들이고 그냥 외우라고 ㅋㅋ."
+    };
+
+    const isFirebaseConfigured = !firebaseConfig.apiKey.includes("YOUR_");
+    let db = null;
+    if (isFirebaseConfigured) {
+      try {
+        const app = initializeApp(firebaseConfig);
+        db = getDatabase(app);
+        document.getElementById("dbStatus").textContent = "랭킹 연결 완료";
+      } catch (e) {
+        document.getElementById("dbStatus").textContent = "Firebase 연결 실패: " + e.message;
+      }
+    } else {
+      document.getElementById("dbStatus").textContent = "Firebase 미설정 (로컬 점수만 저장됨)";
+    }
+
+    // ===================== 게임 코드 =====================
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width;
+    const H = canvas.height;
+
+
+    // 물리 / 게임 상수 (1.25배 확대)
+    const GRAVITY = 1875;
+    const MOVE_SPEED = 300;
+    const JUMP_VELOCITY = 825;
+    const DOUBLE_JUMP_FACTOR = 0.95;     // 더블 점프는 95% 위력
+    const TRAMPOLINE_FACTOR = 1.6;       // 트램펄린 1.6배
+    const COYOTE_TIME = 0.10;
+    const JUMP_BUFFER = 0.12;
+    const TIME_LIMIT = 60.0;
+    const PX_PER_METER = 62;
+
+    // 발판 생성 (고도에 따라 동적)
+    const VGAP_MIN_BASE = 100;
+    const VGAP_MAX_BASE = 150;
+    const HMAX_BASE = 162;
+    const VGAP_MAX_PEAK = 206;
+    const HMAX_PEAK = 287;
+
+    // 용암
+    const LAVA_START_Y = -300;
+    const LAVA_SPEED_INIT = 32;
+    const LAVA_ACCEL = 1.875;
+
+    // 발판 종류 등장 임계 고도 (m)
+    const CRUMBLE_START_M = 300;
+    const SPIKE_START_M = 450;
+    const MOVING_START_M = 600;
+    const TRAMPOLINE_START_M = 700;
+    const METEOR_START_M = 800;
+
+    // 시간 코인 생성 (200m부터 일정 간격으로 보장)
+    // 4.4 m/s 페이스 기준 손익분기점은 ~13m. 10-15m로 살짝 여유 있게 설정.
+    const COIN_START_M = 200;
+    const COIN_INTERVAL_MIN_M = 10;
+    const COIN_INTERVAL_MAX_M = 15;
+    const COIN_TIME_BONUS = 3.5;  // 정상 페이스 +, 어려운 구간 거의 평형
+
+    // 게임 상태
+    const state = {
+      running: false,
+      ended: false,
+      timeLeft: TIME_LIMIT,
+      gameTime: 0,
+      player: null,
+      platforms: [],
+      coins: [],
+      hazards: [],         // 떨어지는 운석
+      particles: [],       // 시각 이펙트
+      timeBonusFlashes: [],
+      hazardSpawnTimer: 4,
+      cameraOffset: 0,
+      maxHeight: 0,
+      nickname: localStorage.getItem("climber_nickname") || "",
+      best: parseFloat(localStorage.getItem("climber_best") || "0"),
+      highestPlatformY: 0,
+      lastPlatformCenterX: W / 2,
+      lastPlatformType: "normal",
+      nextCoinY: COIN_START_M * PX_PER_METER,
+      lavaY: LAVA_START_Y,
+      lavaSpeed: LAVA_SPEED_INIT,
+      lavaTrapTriggered: false,
+      trap920Generated: false,
+      tauntsTriggered: new Set(),
+      keys: {},
+      coyoteTimer: 0,
+      jumpBufferTimer: 0,
+      gameOverReason: ""
+    };
+
+    document.getElementById("bestDisplay").textContent = Math.floor(state.best) + " m";
+    if (state.nickname) document.getElementById("nicknameInput").value = state.nickname;
+
+    // 920m 트랩: 가시 + 깨지는 발판(아래) + 닿을듯 안 닿는 발판(위)
+    function insertTrap920() {
+      const cx = W / 2;
+      const spikeY = 920 * PX_PER_METER;             // 가시 발판 y
+      const crumbleY = spikeY - 100;                  // 가시 바로 아래 깨지는 발판
+      const crumbleTop = crumbleY + 18;
+      // 더블점프 최대 도달 높이 (이론값)
+      const maxDoubleJumpReach =
+        (JUMP_VELOCITY * JUMP_VELOCITY) / (2 * GRAVITY) +
+        (JUMP_VELOCITY * DOUBLE_JUMP_FACTOR) * (JUMP_VELOCITY * DOUBLE_JUMP_FACTOR) / (2 * GRAVITY);
+      // 닿을듯 안 닿게: 최대 도달 + 8px 위에 위쪽 발판 설치
+      const upperTop = crumbleTop + maxDoubleJumpReach + 8;
+      const upperY = upperTop - 18;
+
+      // 깨지는 발판 (넓게 - 잘 보이게)
+      state.platforms.push({
+        x: cx - 60, y: crumbleY, w: 120, h: 18,
+        type: "crumble", baseX: cx - 60, deltaX: 0,
+        crumbleStart: -1, crumbled: false
+      });
+      // 가시 발판 (좁게 - 옆으로 비켜 점프 가능하도록)
+      state.platforms.push({
+        x: cx - 25, y: spikeY, w: 50, h: 18,
+        type: "spike", baseX: cx - 25, deltaX: 0
+      });
+      // 도달 불가능한 위쪽 발판 (넓게 - 닿을 듯 보이게)
+      state.platforms.push({
+        x: cx - 60, y: upperY, w: 120, h: 18,
+        type: "normal", baseX: cx - 60, deltaX: 0
+      });
+    }
+
+    // 트랩 배너 표시 (795m 통과 시 흰 상자가 옆으로 스크롤)
+    function showTrapBanner() {
+      const banner = document.getElementById("trapBanner");
+      banner.classList.remove("scrolling");
+      banner.classList.remove("hidden");
+      void banner.offsetWidth; // 강제 reflow로 애니메이션 재시작
+      banner.classList.add("scrolling");
+    }
+    document.getElementById("trapBanner").addEventListener("animationend", () => {
+      document.getElementById("trapBanner").classList.add("hidden");
+    });
+
+    // 도발 배너 (100m마다 짧게 스쳐 지나감)
+    function showTaunt(text) {
+      const banner = document.getElementById("tauntBanner");
+      banner.textContent = text;
+      banner.classList.remove("scrolling");
+      banner.classList.remove("hidden");
+      void banner.offsetWidth;
+      banner.classList.add("scrolling");
+    }
+    document.getElementById("tauntBanner").addEventListener("animationend", () => {
+      document.getElementById("tauntBanner").classList.add("hidden");
+    });
+
+
+    // --- 입력 ---
+    const moveKeys = { ArrowLeft: -1, a: -1, A: -1, ArrowRight: 1, d: 1, D: 1 };
+    const jumpKeys = new Set(["ArrowUp", "w", "W", " ", "Spacebar"]);
+    window.addEventListener("keydown", (e) => {
+      if (e.key in moveKeys) { state.keys[e.key] = true; e.preventDefault(); }
+      else if (jumpKeys.has(e.key)) { state.jumpBufferTimer = JUMP_BUFFER; e.preventDefault(); }
+    });
+    window.addEventListener("keyup", (e) => {
+      if (e.key in moveKeys) { state.keys[e.key] = false; e.preventDefault(); }
+    });
+
+    // --- 유틸 ---
+    function randRange(a, b) { return a + Math.random() * (b - a); }
+    function lerp(a, b, t) { return a + (b - a) * t; }
+
+    // --- 발판 생성 ---
+    function createInitialPlatforms() {
+      state.platforms = [];
+      state.coins = [];
+      state.platforms.push({ x: 0, y: 0, w: W, h: 20, type: "base" });
+      state.highestPlatformY = 0;
+      state.lastPlatformCenterX = W / 2;
+      state.lastPlatformType = "normal";
+      state.nextCoinY = COIN_START_M * PX_PER_METER;
+      generatePlatformsUpTo(2750);
+    }
+
+    function generatePlatformsUpTo(targetY) {
+      let y = state.highestPlatformY;
+      let lastCx = state.lastPlatformCenterX;
+      let lastType = state.lastPlatformType;
+      while (y < targetY) {
+        const altitudeM = y / PX_PER_METER;
+        // 고도에 따라 점프 거리/수직 간격이 증가 (0~1500m 사이에서 보간)
+        const climbFactor = Math.min(1, altitudeM / 1500);
+
+        const vMax = lerp(VGAP_MAX_BASE, VGAP_MAX_PEAK, climbFactor);
+        const hMax = lerp(HMAX_BASE, HMAX_PEAK, climbFactor);
+
+        const gap = randRange(VGAP_MIN_BASE, vMax);
+        y += gap;
+
+        // 발판 너비
+        const minW = lerp(88, 62, climbFactor);
+        const maxW = lerp(175, 112, climbFactor);
+        const platW = randRange(minW, maxW);
+
+        // 수평 위치
+        let offset = randRange(-hMax, hMax);
+        let cx = lastCx + offset;
+        const minCx = platW / 2 + 8;
+        const maxCx = W - platW / 2 - 8;
+        if (cx < minCx) cx = minCx;
+        if (cx > maxCx) cx = maxCx;
+        const platX = cx - platW / 2;
+
+        // 발판 종류 확률 (고도별)
+        const crumbleP = altitudeM >= CRUMBLE_START_M ? Math.min(0.28, (altitudeM - CRUMBLE_START_M) / 1500) : 0;
+        const spikeP   = altitudeM >= SPIKE_START_M   ? Math.min(0.10, (altitudeM - SPIKE_START_M) / 2000) : 0;
+        const movingP  = altitudeM >= MOVING_START_M  ? Math.min(0.22, (altitudeM - MOVING_START_M) / 1500) : 0;
+        const trampP   = altitudeM >= TRAMPOLINE_START_M ? 0.06 : 0;
+
+        // 직전 발판이 가시였다면 이번엔 가시 금지 (연속 가시로 막히는 구간 방지)
+        const effectiveSpikeP = lastType === "spike" ? 0 : spikeP;
+
+        const r = Math.random();
+        let type = "normal";
+        let acc = 0;
+        if (r < (acc += effectiveSpikeP)) type = "spike";
+        else if (r < (acc += crumbleP)) type = "crumble";
+        else if (r < (acc += movingP)) type = "moving";
+        else if (r < (acc += trampP)) type = "trampoline";
+
+        const plat = {
+          x: platX, y, w: platW, h: 18,
+          type, baseX: platX, deltaX: 0
+        };
+        if (type === "moving") {
+          plat.moveRange = randRange(50, 95);
+          plat.moveSpeed = randRange(1.0, 1.8);
+          plat.phase = Math.random() * Math.PI * 2;
+          plat.minX = Math.max(8, platX - plat.moveRange);
+          plat.maxX = Math.min(W - platW - 8, platX + plat.moveRange);
+        }
+        if (type === "crumble") { plat.crumbleStart = -1; plat.crumbled = false; }
+
+        state.platforms.push(plat);
+        lastCx = cx;
+        lastType = type;
+
+        // 시간 코인 - 200m부터 일정 간격으로 보장 (10~15m마다 1개)
+        if (y >= state.nextCoinY) {
+          state.coins.push({
+            x: cx + randRange(-38, 38),
+            y: y + randRange(48, 78),
+            r: 15, taken: false,
+            phase: Math.random() * Math.PI * 2
+          });
+          state.nextCoinY = y + randRange(COIN_INTERVAL_MIN_M, COIN_INTERVAL_MAX_M) * PX_PER_METER;
+        }
+      }
+      state.lastPlatformCenterX = lastCx;
+      state.lastPlatformType = lastType;
+      state.highestPlatformY = y;
+    }
+
+    // --- 게임 시작 ---
+    function startGame() {
+      const nickname = document.getElementById("nicknameInput").value.trim();
+      if (!nickname) { alert("닉네임을 입력해주세요"); return; }
+      state.nickname = nickname;
+      localStorage.setItem("climber_nickname", nickname);
+
+      state.player = {
+        x: W / 2 - 15, y: 38, w: 30, h: 36,
+        vx: 0, vy: 0, onGround: false, facing: 1,
+        standingOn: null,
+        jumpsUsed: 0       // 0 = 둘 다 남음, 1 = 한 번 썼음, 2 = 다 썼음
+      };
+      state.cameraOffset = 0;
+      state.maxHeight = 0;
+      state.timeLeft = TIME_LIMIT;
+      state.gameTime = 0;
+      state.coyoteTimer = 0;
+      state.jumpBufferTimer = 0;
+      state.lavaY = LAVA_START_Y;
+      state.lavaSpeed = LAVA_SPEED_INIT;
+      state.lavaTrapTriggered = false;
+      state.trap920Generated = false;
+      state.tauntsTriggered = new Set();
+      // 배너 숨김 (재시작 시)
+      const tb = document.getElementById("trapBanner");
+      tb.classList.add("hidden");
+      tb.classList.remove("scrolling");
+      const tauntEl = document.getElementById("tauntBanner");
+      tauntEl.classList.add("hidden");
+      tauntEl.classList.remove("scrolling");
+      state.timeBonusFlashes = [];
+      state.hazards = [];
+      state.particles = [];
+      state.hazardSpawnTimer = 4;
+      state.gameOverReason = "";
+      state.ended = false;
+      createInitialPlatforms();
+      state.running = true;
+      document.getElementById("startOverlay").classList.add("hidden");
+      document.getElementById("gameOverOverlay").classList.add("hidden");
+    }
+
+    function endGame(reason) {
+      if (state.ended) return;
+      state.ended = true;
+      state.running = false;
+      state.gameOverReason = reason;
+      const score = Math.floor(state.maxHeight);
+      if (score > state.best) {
+        state.best = score;
+        localStorage.setItem("climber_best", String(score));
+        document.getElementById("bestDisplay").textContent = score + " m";
+      }
+      const titleMap = {
+        timeup: "시간 종료!",
+        fell: "떨어졌습니다!",
+        lava: "용암에 닿았습니다!",
+        spike: "가시에 찔렸습니다!",
+        meteor: "운석에 맞았습니다!"
+      };
+      document.getElementById("gameOverTitle").textContent = titleMap[reason] || "게임 오버";
+      document.getElementById("finalNickname").textContent = state.nickname;
+      document.getElementById("finalScore").textContent = score + " m";
+      submitScore(state.nickname, score);
+      document.getElementById("gameOverOverlay").classList.remove("hidden");
+    }
+
+    async function submitScore(nickname, score) {
+      const statusEl = document.getElementById("submitStatus");
+      if (!db) { statusEl.textContent = "Firebase가 설정되지 않아 랭킹에 등록되지 않았습니다"; return; }
+      try {
+        statusEl.textContent = "랭킹에 등록 중...";
+        await push(ref(db, SCORES_NODE), {
+          nickname: nickname.slice(0, 10),
+          score: score,
+          createdAt: serverTimestamp()
+        });
+        statusEl.textContent = "랭킹 등록 완료!";
+      } catch (e) {
+        statusEl.textContent = "등록 실패: " + e.message;
+      }
+    }
+
+    // --- 파티클(이펙트) ---
+    function spawnParticles(x, y, color, n, opts={}) {
+      for (let i = 0; i < n; i++) {
+        const a = Math.random() * Math.PI * 2;
+        const sp = randRange(40, 120) * (opts.speedScale || 1);
+        state.particles.push({
+          x, y,
+          vx: Math.cos(a) * sp + (opts.vx || 0),
+          vy: Math.sin(a) * sp + (opts.vy || 0),
+          life: opts.life || 0.5,
+          age: 0,
+          color,
+          size: opts.size || 3
+        });
+      }
+    }
+
+    // --- 게임 업데이트 ---
+    function update(dt) {
+      state.gameTime += dt;
+
+      // 타이머
+      state.timeLeft -= dt;
+      if (state.timeLeft <= 0) { state.timeLeft = 0; endGame("timeup"); return; }
+
+      const p = state.player;
+
+      // 움직이는 발판 위치 갱신 (deltaX 계산)
+      for (const plat of state.platforms) {
+        if (plat.type === "moving") {
+          const prevX = plat.x;
+          const cx = plat.baseX + Math.sin(state.gameTime * plat.moveSpeed + plat.phase) * plat.moveRange;
+          plat.x = Math.max(plat.minX, Math.min(plat.maxX, cx));
+          plat.deltaX = plat.x - prevX;
+        } else {
+          plat.deltaX = 0;
+        }
+      }
+
+      // 좌우 입력
+      let moveDir = 0;
+      for (const k in state.keys) if (state.keys[k]) moveDir += moveKeys[k];
+      moveDir = Math.sign(moveDir);
+      p.vx = moveDir * MOVE_SPEED;
+      if (moveDir !== 0) p.facing = moveDir;
+
+      // 점프 처리 (더블 점프 지원)
+      state.jumpBufferTimer -= dt;
+      state.coyoteTimer -= dt;
+      if (state.jumpBufferTimer > 0 && p.jumpsUsed < 2) {
+        const isFirstJump = (p.jumpsUsed === 0);
+        const power = isFirstJump ? JUMP_VELOCITY : JUMP_VELOCITY * DOUBLE_JUMP_FACTOR;
+        // 첫 점프는 지상/코요테 우선, 공중에서도 가능 (낭떠러지에서 떨어진 후 점프할 수 있도록)
+        p.vy = power;
+        p.jumpsUsed++;
+        p.onGround = false;
+        p.standingOn = null;
+        state.coyoteTimer = 0;
+        state.jumpBufferTimer = 0;
+        // 더블 점프 이펙트
+        if (!isFirstJump) {
+          spawnParticles(p.x + p.w / 2, p.y, "#9fd5ff", 10, { life: 0.4, size: 2.5 });
+        }
+      }
+
+      // 중력
+      p.vy -= GRAVITY * dt;
+
+      // 움직이는 발판에 붙어서 이동
+      if (p.onGround && p.standingOn && p.standingOn.type === "moving") {
+        p.x += p.standingOn.deltaX;
+      }
+
+      // 수평 이동
+      p.x += p.vx * dt;
+      if (p.x < 0) p.x = 0;
+      if (p.x + p.w > W) p.x = W - p.w;
+
+      // 수직 이동
+      const prevBottom = p.y;
+      p.y += p.vy * dt;
+
+      // === 가시 발판 충돌 (즉사) - 먼저 체크 ===
+      for (const plat of state.platforms) {
+        if (plat.type !== "spike" || plat.crumbled) continue;
+        const spikeTop = plat.y + plat.h + 13;
+        if (
+          p.x + p.w > plat.x && p.x < plat.x + plat.w &&
+          p.y < spikeTop && p.y + p.h > plat.y
+        ) {
+          endGame("spike");
+          return;
+        }
+      }
+
+      // === 일반 발판 충돌 (떨어질 때만) ===
+      p.onGround = false;
+      p.standingOn = null;
+      if (p.vy <= 0) {
+        for (const plat of state.platforms) {
+          if (plat.type === "spike" || plat.crumbled) continue;
+          const platTop = plat.y + plat.h;
+          if (
+            p.x + p.w > plat.x && p.x < plat.x + plat.w &&
+            prevBottom >= platTop - 0.5 && p.y < platTop
+          ) {
+            p.y = platTop;
+            p.onGround = true;
+            p.standingOn = plat;
+            state.coyoteTimer = COYOTE_TIME;
+            // 트램펄린 처리
+            if (plat.type === "trampoline") {
+              p.vy = JUMP_VELOCITY * TRAMPOLINE_FACTOR;
+              p.onGround = false;
+              p.standingOn = null;
+              p.jumpsUsed = 1; // 더블 점프 한 번 보존
+              spawnParticles(p.x + p.w / 2, p.y, "#7be78a", 16, { life: 0.5, size: 3, vy: -30 });
+            } else {
+              p.vy = 0;
+              p.jumpsUsed = 0; // 착지 시 점프 횟수 리셋
+              if (plat.type === "crumble" && plat.crumbleStart < 0) {
+                plat.crumbleStart = state.gameTime;
+              }
+            }
+            break;
+          }
+        }
+      }
+
+      // 부서지는 발판 타이머
+      for (const plat of state.platforms) {
+        if (plat.type === "crumble" && plat.crumbleStart > 0 && !plat.crumbled) {
+          if (state.gameTime - plat.crumbleStart > 0.5) {
+            plat.crumbled = true;
+            spawnParticles(plat.x + plat.w / 2, plat.y, "#a06a3c", 14, { life: 0.6, size: 3, vy: -20 });
+            if (p.standingOn === plat) { p.standingOn = null; p.onGround = false; }
+          }
+        }
+      }
+
+      // 시간 코인 충돌
+      const pCx = p.x + p.w / 2;
+      const pCy = p.y + p.h / 2;
+      for (const coin of state.coins) {
+        if (coin.taken) continue;
+        const dx = pCx - coin.x;
+        const dy = pCy - coin.y;
+        if (dx * dx + dy * dy < (coin.r + 10) * (coin.r + 10)) {
+          coin.taken = true;
+          state.timeLeft = Math.min(99, state.timeLeft + COIN_TIME_BONUS);
+          state.timeBonusFlashes.push({ x: coin.x, y: coin.y, born: state.gameTime });
+          spawnParticles(coin.x, coin.y, "#ffd95a", 10, { life: 0.4, size: 3 });
+        }
+      }
+
+      // === 운석 (떨어지는 위험물) ===
+      if (state.maxHeight >= METEOR_START_M) {
+        state.hazardSpawnTimer -= dt;
+        if (state.hazardSpawnTimer <= 0) {
+          const altFactor = Math.min(2, (state.maxHeight - METEOR_START_M) / 1000 + 1);
+          // 카메라 가시 영역 안에서 무작위 x
+          const targetX = randRange(30, W - 30);
+          state.hazards.push({
+            x: targetX,
+            warnY: state.cameraOffset + H - 38,
+            y: state.cameraOffset + H + 50,
+            vy: 0,
+            warningTimer: 0.7,
+            mode: "warning",
+            r: 14
+          });
+          // 900m+ 에서는 1.5배 빈도로 등장
+          const freqBoost = state.maxHeight >= 900 ? 1.5 : 1;
+          state.hazardSpawnTimer = randRange(2.2, 4.0) / altFactor / freqBoost;
+        }
+      }
+
+      for (let i = state.hazards.length - 1; i >= 0; i--) {
+        const h = state.hazards[i];
+        if (h.mode === "warning") {
+          h.warningTimer -= dt;
+          // 경고 위치도 카메라 따라 갱신
+          h.warnY = state.cameraOffset + H - 30;
+          if (h.warningTimer <= 0) {
+            h.mode = "falling";
+            // 900m+ 에서는 1.5배 빠르게 낙하
+            h.vy = -700 * (state.maxHeight >= 900 ? 1.5 : 1);
+            h.y = state.cameraOffset + H + 12;
+          }
+        } else {
+          h.y += h.vy * dt;
+          // 운석-플레이어 충돌
+          const dx = h.x - (p.x + p.w / 2);
+          const dy = h.y - (p.y + p.h / 2);
+          if (dx * dx + dy * dy < (h.r + 15) * (h.r + 15)) {
+            endGame("meteor"); return;
+          }
+          // 멀리 떨어졌으면 제거
+          if (h.y < state.cameraOffset - 100) state.hazards.splice(i, 1);
+        }
+      }
+
+      // 용암 상승
+      state.lavaSpeed += LAVA_ACCEL * dt;
+      state.lavaY += state.lavaSpeed * dt;
+      if (p.y <= state.lavaY) { endGame("lava"); return; }
+
+      // 최고 높이 갱신
+      const heightM = Math.max(0, p.y / PX_PER_METER);
+      if (heightM > state.maxHeight) state.maxHeight = heightM;
+
+      // 920m 트랩 사전 배치 (한 번만)
+      if (!state.trap920Generated && state.maxHeight >= 800) {
+        insertTrap920();
+        state.trap920Generated = true;
+      }
+
+      // 100m 단위 도발 메시지
+      for (const altStr in TAUNT_MESSAGES) {
+        const alt = parseInt(altStr);
+        if (!state.tauntsTriggered.has(alt) && state.maxHeight >= alt) {
+          state.tauntsTriggered.add(alt);
+          showTaunt(TAUNT_MESSAGES[alt]);
+        }
+      }
+
+
+      // 카메라
+      const targetCam = p.y - (H * 0.45);
+      if (targetCam > state.cameraOffset) state.cameraOffset = targetCam;
+
+      // 위쪽 발판 추가 생성
+      if (state.highestPlatformY < state.cameraOffset + H + 750) {
+        generatePlatformsUpTo(state.cameraOffset + H + 1880);
+      }
+
+      // 카메라 밖으로 떨어졌는지
+      if (p.y < state.cameraOffset - 75) { endGame("fell"); return; }
+
+      // 파티클 업데이트
+      for (let i = state.particles.length - 1; i >= 0; i--) {
+        const pt = state.particles[i];
+        pt.age += dt;
+        if (pt.age >= pt.life) { state.particles.splice(i, 1); continue; }
+        pt.x += pt.vx * dt;
+        pt.y += pt.vy * dt;
+        pt.vy -= 200 * dt;
+      }
+
+      // HUD
+      const timerEl = document.getElementById("timeDisplay");
+      timerEl.textContent = state.timeLeft.toFixed(1);
+      timerEl.classList.toggle("warn", state.timeLeft <= 15 && state.timeLeft > 5);
+      timerEl.classList.toggle("danger", state.timeLeft <= 5);
+      document.getElementById("heightDisplay").textContent = Math.floor(state.maxHeight) + " m";
+    }
+
+    // --- 렌더 ---
+    function worldToScreen(wy) { return H - (wy - state.cameraOffset); }
+
+    function render() {
+      // 배경
+      const heightFactor = Math.min(1, state.cameraOffset / 6000);
+      const topColor = mixColor("#7ec8ff", "#1a1a3a", heightFactor);
+      const botColor = mixColor("#cce8ff", "#3a3a6a", heightFactor);
+      const grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, topColor);
+      grad.addColorStop(1, botColor);
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, H);
+
+      drawClouds();
+
+      // 발판들
+      for (const plat of state.platforms) {
+        if (plat.crumbled) continue;
+        const sy = worldToScreen(plat.y + plat.h);
+        if (sy < -30 || sy > H + 50) continue;
+
+        // 그림자
+        ctx.fillStyle = "rgba(0,0,0,0.18)";
+        ctx.fillRect(plat.x + 2, sy + 3, plat.w, plat.h);
+
+        let body, top;
+        if (plat.type === "base") { body = "#6b8e23"; top = "#9bbf4e"; }
+        else if (plat.type === "moving") { body = "#2e6fb5"; top = "#5ba0e0"; }
+        else if (plat.type === "spike") { body = "#1a1a1a"; top = "#444"; }
+        else if (plat.type === "trampoline") { body = "#2da84e"; top = "#5fd17e"; }
+        else if (plat.type === "crumble") {
+          const crumbleT = plat.crumbleStart > 0 ? Math.min(1, (state.gameTime - plat.crumbleStart) / 0.5) : 0;
+          body = mixColor("#b97742", "#cf2e1e", crumbleT);
+          top = mixColor("#dba36b", "#ff6b5a", crumbleT);
+          if (crumbleT > 0.5) {
+            const shake = Math.sin(state.gameTime * 40) * 1.5;
+            ctx.translate(shake, 0);
+          }
+        } else { body = "#8b5a2b"; top = "#c08658"; }
+
+        ctx.fillStyle = body;
+        ctx.fillRect(plat.x, sy, plat.w, plat.h);
+        ctx.fillStyle = top;
+        ctx.fillRect(plat.x, sy, plat.w, 3);
+
+        // 가시 그리기
+        if (plat.type === "spike") {
+          ctx.fillStyle = "#222";
+          const spikeCount = Math.max(3, Math.floor(plat.w / 15));
+          const spikeW = plat.w / spikeCount;
+          for (let i = 0; i < spikeCount; i++) {
+            const sx = plat.x + i * spikeW;
+            ctx.beginPath();
+            ctx.moveTo(sx, sy);
+            ctx.lineTo(sx + spikeW / 2, sy - 13);
+            ctx.lineTo(sx + spikeW, sy);
+            ctx.closePath();
+            ctx.fill();
+          }
+          // 가시 끝 하이라이트
+          ctx.fillStyle = "#666";
+          for (let i = 0; i < spikeCount; i++) {
+            const sx = plat.x + i * spikeW + spikeW / 2;
+            ctx.fillRect(sx - 1, sy - 13, 2, 4);
+          }
+        }
+
+        // 트램펄린 - 스프링 표시
+        if (plat.type === "trampoline") {
+          ctx.strokeStyle = "rgba(255,255,255,0.85)";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          for (let i = 0; i < 3; i++) {
+            const sx = plat.x + plat.w * (0.25 + i * 0.25);
+            ctx.moveTo(sx - 4, sy + 5);
+            ctx.lineTo(sx + 4, sy + 9);
+            ctx.lineTo(sx - 4, sy + 13);
+          }
+          ctx.stroke();
+        }
+
+        // 부서지는 발판 균열
+        if (plat.type === "crumble" && plat.crumbleStart > 0) {
+          ctx.strokeStyle = "rgba(0,0,0,0.55)";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.moveTo(plat.x + plat.w * 0.3, sy);
+          ctx.lineTo(plat.x + plat.w * 0.35, sy + plat.h);
+          ctx.moveTo(plat.x + plat.w * 0.65, sy);
+          ctx.lineTo(plat.x + plat.w * 0.7, sy + plat.h);
+          ctx.stroke();
+        }
+
+        // 움직이는 발판 표시
+        if (plat.type === "moving") {
+          ctx.fillStyle = "rgba(255,255,255,0.6)";
+          ctx.font = "10px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("◀▶", plat.x + plat.w / 2, sy + 11);
+        }
+
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+      }
+
+      // 코인
+      for (const coin of state.coins) {
+        if (coin.taken) continue;
+        const sy = worldToScreen(coin.y);
+        if (sy < -30 || sy > H + 30) continue;
+        const float = Math.sin(state.gameTime * 3 + coin.phase) * 3;
+        drawCoin(coin.x, sy + float);
+      }
+
+      // 운석
+      for (const h of state.hazards) {
+        if (h.mode === "warning") {
+          // 화면 위쪽 가장자리에 깜빡이는 경고
+          const blink = Math.sin(state.gameTime * 18) > 0;
+          ctx.fillStyle = blink ? "#ff3b3b" : "#ff8a3b";
+          ctx.beginPath();
+          ctx.moveTo(h.x, 6);
+          ctx.lineTo(h.x - 10, 22);
+          ctx.lineTo(h.x + 10, 22);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = "#fff";
+          ctx.font = "bold 12px sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("!", h.x, 21);
+        } else {
+          const sy = worldToScreen(h.y);
+          if (sy < -30 || sy > H + 30) continue;
+          // 운석 본체
+          ctx.fillStyle = "#3d2418";
+          ctx.beginPath();
+          ctx.arc(h.x, sy, h.r, 0, Math.PI * 2);
+          ctx.fill();
+          // 화염 꼬리
+          ctx.fillStyle = "rgba(255, 140, 50, 0.7)";
+          ctx.beginPath();
+          ctx.moveTo(h.x - 8, sy - 4);
+          ctx.lineTo(h.x, sy + 18);
+          ctx.lineTo(h.x + 8, sy - 4);
+          ctx.closePath();
+          ctx.fill();
+          ctx.fillStyle = "rgba(255, 200, 80, 0.5)";
+          ctx.beginPath();
+          ctx.arc(h.x, sy, h.r + 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      // 파티클
+      for (const pt of state.particles) {
+        const sy = worldToScreen(pt.y);
+        const alpha = 1 - pt.age / pt.life;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = pt.color;
+        ctx.fillRect(pt.x - pt.size / 2, sy - pt.size / 2, pt.size, pt.size);
+      }
+      ctx.globalAlpha = 1;
+
+      // 플레이어
+      if (state.player) drawPlayer();
+
+      // 용암
+      drawLava();
+
+      // 우측 높이 눈금
+      drawHeightMarker();
+
+      // 시간 보너스 텍스트
+      drawTimeBonusFlashes();
+    }
+
+    function drawCoin(x, y) {
+      ctx.save();
+      const r = 14;
+      ctx.fillStyle = "#f9a825";
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#ffd95a";
+      ctx.beginPath(); ctx.arc(x, y, r - 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#7a4a00";
+      ctx.font = "bold 14px sans-serif";
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.fillText("+", x, y);
+      ctx.restore();
+    }
+
+    function drawPlayer() {
+      const p = state.player;
+      const sx = p.x;
+      const sy = worldToScreen(p.y + p.h);
+      const cx = p.x + p.w / 2;
+      const bottomY = worldToScreen(p.y);
+
+      // 그림자
+      ctx.fillStyle = "rgba(0,0,0,0.25)";
+      ctx.beginPath();
+      ctx.ellipse(cx, bottomY + 3, p.w / 2, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      // 몸통
+      ctx.fillStyle = "#ff6b6b";
+      roundRect(ctx, sx, sy, p.w, p.h, 6);
+      ctx.fill();
+
+      // 눈
+      const eyeOffset = p.facing > 0 ? 4 : -4;
+      ctx.fillStyle = "#fff";
+      ctx.beginPath();
+      ctx.arc(cx + eyeOffset - 5, sy + 11, 4, 0, Math.PI * 2);
+      ctx.arc(cx + eyeOffset + 5, sy + 11, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      ctx.arc(cx + eyeOffset - 5, sy + 11, 2, 0, Math.PI * 2);
+      ctx.arc(cx + eyeOffset + 5, sy + 11, 2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawLava() {
+      const surfaceY = worldToScreen(state.lavaY);
+      if (surfaceY < -30) return;
+      const drawY = Math.max(-10, surfaceY);
+      const grad = ctx.createLinearGradient(0, drawY, 0, H);
+      grad.addColorStop(0, "#ff5a1f");
+      grad.addColorStop(0.5, "#cf2e1e");
+      grad.addColorStop(1, "#7a0a02");
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, drawY + 6, W, H - drawY);
+      ctx.fillStyle = "#ffaa3a";
+      ctx.beginPath();
+      ctx.moveTo(0, drawY + 12);
+      const wave = 6;
+      for (let x = 0; x <= W; x += 12) {
+        const wy = drawY + 6 + Math.sin(x * 0.08 + state.gameTime * 4) * wave;
+        ctx.lineTo(x, wy);
+      }
+      ctx.lineTo(W, drawY + 12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "rgba(255, 200, 80, 0.35)";
+      ctx.fillRect(0, drawY - 20, W, 20);
+    }
+
+    function drawTimeBonusFlashes() {
+      ctx.save();
+      ctx.font = "bold 18px sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#ffd95a";
+      for (let i = state.timeBonusFlashes.length - 1; i >= 0; i--) {
+        const f = state.timeBonusFlashes[i];
+        const t = state.gameTime - f.born;
+        if (t > 0.9) { state.timeBonusFlashes.splice(i, 1); continue; }
+        const alpha = 1 - t / 0.9;
+        ctx.globalAlpha = alpha;
+        const sy = worldToScreen(f.y) - t * 40;
+        ctx.fillText("+" + COIN_TIME_BONUS + "초", f.x, sy);
+      }
+      ctx.restore();
+    }
+
+    function drawClouds() {
+      const seed = Math.floor(state.cameraOffset / 200) * 200;
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      for (let i = 0; i < 5; i++) {
+        const cy = seed + i * 320 + 100;
+        const cx = ((i * 173 + Math.floor(state.cameraOffset / 50)) % W);
+        const sy = worldToScreen(cy);
+        if (sy < -50 || sy > H + 50) continue;
+        ctx.beginPath();
+        ctx.ellipse(cx, sy, 30, 10, 0, 0, Math.PI * 2);
+        ctx.ellipse(cx + 20, sy - 4, 22, 8, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawHeightMarker() {
+      ctx.fillStyle = "rgba(255,255,255,0.4)";
+      ctx.font = "11px sans-serif";
+      ctx.textAlign = "right";
+      const startM = Math.floor(state.cameraOffset / PX_PER_METER / 50) * 50;
+      for (let m = startM; m < startM + 30 * 50; m += 50) {
+        const wy = m * PX_PER_METER;
+        const sy = worldToScreen(wy);
+        if (sy < 10 || sy > H - 10) continue;
+        ctx.fillRect(W - 6, sy - 1, 4, 2);
+        ctx.fillText(m + "m", W - 12, sy + 4);
+      }
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
+
+    function mixColor(hexA, hexB, t) {
+      const a = parseInt(hexA.slice(1), 16);
+      const b = parseInt(hexB.slice(1), 16);
+      const ar = (a >> 16) & 0xff, ag = (a >> 8) & 0xff, ab = a & 0xff;
+      const br = (b >> 16) & 0xff, bg = (b >> 8) & 0xff, bb = b & 0xff;
+      const r = Math.round(ar + (br - ar) * t);
+      const g = Math.round(ag + (bg - ag) * t);
+      const bl = Math.round(ab + (bb - ab) * t);
+      return "rgb(" + r + "," + g + "," + bl + ")";
+    }
+
+    // --- 메인 루프 ---
+    let lastTime = 0;
+    function loop(t) {
+      const dt = Math.min((t - lastTime) / 1000, 0.05);
+      lastTime = t;
+      if (state.running) update(dt);
+      render();
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    document.getElementById("startBtn").addEventListener("click", startGame);
+    document.getElementById("restartBtn").addEventListener("click", startGame);
+    document.getElementById("nicknameInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") startGame();
+    });
+    document.getElementById("changeNameBtn").addEventListener("click", () => {
+      document.getElementById("gameOverOverlay").classList.add("hidden");
+      document.getElementById("startOverlay").classList.remove("hidden");
+      const inp = document.getElementById("nicknameInput");
+      inp.focus(); inp.select();
+    });
+
+    // --- 랭킹 실시간 표시 ---
+    if (db) {
+      const topScoresQuery = query(ref(db, SCORES_NODE), orderByChild("score"), limitToLast(20));
+      onValue(topScoresQuery, (snapshot) => {
+        const entries = [];
+        snapshot.forEach((child) => {
+          const v = child.val();
+          entries.push({ nickname: v.nickname || "익명", score: v.score || 0 });
+        });
+        entries.sort((a, b) => b.score - a.score);
+        const list = document.getElementById("leaderboardList");
+        if (entries.length === 0) {
+          list.innerHTML = '<li style="opacity:0.5;">아직 등록된 기록이 없습니다</li>';
+          return;
+        }
+        list.innerHTML = entries.map((e, i) => {
+          const rank = i + 1;
+          const cls = (rank <= 3 ? `top-${rank}` : "") + (e.nickname === state.nickname ? " me" : "");
+          return `<li class="${cls}"><span class="rank">${rank}</span><span class="name">${escapeHtml(e.nickname)}</span><span class="score">${e.score} m</span></li>`;
+        }).join("");
+      }, (err) => {
+        document.getElementById("dbStatus").textContent = "랭킹 불러오기 실패: " + err.message;
+      });
+    } else {
+      document.getElementById("leaderboardList").innerHTML =
+        '<li style="opacity:0.5;">Firebase 설정 후 랭킹이 표시됩니다</li>';
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      })[c]);
+    }
+  </script>
+</body>
+</html>
