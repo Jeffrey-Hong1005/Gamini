@@ -222,27 +222,59 @@
   const wallMat = new THREE.MeshStandardMaterial({ color: 0x6b2630, roughness: 0.6, metalness: 0.2, emissive: 0x300a0e, emissiveIntensity: 0.5 });
   const wallMat2 = new THREE.MeshStandardMaterial({ color: 0x2a2f3a, roughness: 0.7, metalness: 0.4 });
 
-  // ================= Player: black stick figure =================
-  const blackMat = new THREE.MeshStandardMaterial({ color: 0x0c0c10, roughness: 0.55 });
+  // ================= Player: zombie =================
+  const skinMat     = new THREE.MeshStandardMaterial({ color: 0x7fa15a, roughness: 0.85 }); // 창백한 좀비 살색
+  const skinDarkMat = new THREE.MeshStandardMaterial({ color: 0x586b39, roughness: 0.9 });
+  const shirtMat    = new THREE.MeshStandardMaterial({ color: 0x46566b, roughness: 0.85 }); // 너덜한 셔츠
+  const pantsMat    = new THREE.MeshStandardMaterial({ color: 0x2a2d39, roughness: 0.85 });
+  const shoeMat     = new THREE.MeshStandardMaterial({ color: 0x1a1c24, roughness: 0.7 });
+  const eyeMat      = new THREE.MeshStandardMaterial({ color: 0xffef9c, emissive: 0xffd23f, emissiveIntensity: 1.4, roughness: 0.4 });
+  const mouthMat    = new THREE.MeshStandardMaterial({ color: 0x201a18, roughness: 0.8 });
+  const woundMat    = new THREE.MeshStandardMaterial({ color: 0x7a1f1f, roughness: 0.7 });
   const player = new THREE.Group();
   const limbs = {};
-  (function buildStickman() {
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.42, 20, 20), blackMat);
-    head.position.y = 2.55; head.castShadow = true; player.add(head);
-    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 1.2, 10), blackMat);
-    torso.position.y = 1.6; torso.castShadow = true; player.add(torso);
-    function limb(len) {
+  (function buildZombie() {
+    // 머리 (살짝 앞으로 숙인 좀비 자세)
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.46, 24, 24), skinMat);
+    head.scale.set(1, 1.06, 0.96);
+    head.position.set(0, 2.5, 0.06); head.rotation.x = 0.18; head.castShadow = true; player.add(head);
+    // 헝클어진 머리카락
+    const hair = new THREE.Mesh(new THREE.SphereGeometry(0.47, 18, 14, 0, Math.PI * 2, 0, Math.PI * 0.55), skinDarkMat);
+    hair.position.copy(head.position); hair.rotation.x = -0.15; player.add(hair);
+    // 움푹한 눈 + 빛나는 동공
+    const socketGeo = new THREE.SphereGeometry(0.13, 12, 12);
+    const socL = new THREE.Mesh(socketGeo, skinDarkMat); socL.position.set(-0.17, 2.55, 0.36); socL.scale.set(1, 1, 0.5); player.add(socL);
+    const socR = new THREE.Mesh(socketGeo, skinDarkMat); socR.position.set(0.17, 2.53, 0.36); socR.scale.set(1, 1, 0.5); player.add(socR);
+    const eyeGeo = new THREE.SphereGeometry(0.07, 10, 10);
+    const eyeL = new THREE.Mesh(eyeGeo, eyeMat); eyeL.position.set(-0.17, 2.55, 0.43); player.add(eyeL);
+    const eyeR = new THREE.Mesh(eyeGeo, eyeMat); eyeR.position.set(0.17, 2.53, 0.43); player.add(eyeR);
+    // 벌어진 입
+    const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.12, 0.08), mouthMat);
+    mouth.position.set(0, 2.3, 0.42); mouth.rotation.x = 0.1; player.add(mouth);
+
+    // 몸통 (너덜한 셔츠) + 상처 패치
+    const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.23, 0.19, 1.25, 14), shirtMat);
+    torso.position.set(0, 1.6, 0); torso.rotation.x = 0.08; torso.castShadow = true; player.add(torso);
+    const wound = new THREE.Mesh(new THREE.SphereGeometry(0.11, 10, 10), woundMat);
+    wound.position.set(0.13, 1.72, 0.2); wound.scale.set(1, 1.5, 0.4); player.add(wound);
+
+    // 팔/다리 빌더: 윗부분/아랫부분/끝(손·발) 색을 따로
+    function limb(len, upperMat, lowerMat, capMat, capR) {
       const p = new THREE.Group();
-      const seg = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.08, len, 8), blackMat);
-      seg.position.y = -len / 2; seg.castShadow = true; p.add(seg);
-      const cap = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), blackMat);
-      cap.position.y = -len; p.add(cap);
+      const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.1, len * 0.55, 10), upperMat);
+      upper.position.y = -len * 0.275; upper.castShadow = true; p.add(upper);
+      const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.085, len * 0.5, 10), lowerMat);
+      lower.position.y = -len * 0.73; lower.castShadow = true; p.add(lower);
+      const cap = new THREE.Mesh(new THREE.SphereGeometry(capR, 10, 10), capMat);
+      cap.position.y = -len; cap.castShadow = true; p.add(cap);
       return p;
     }
-    limbs.armL = limb(1.0); limbs.armL.position.set(-0.13, 2.15, 0); player.add(limbs.armL);
-    limbs.armR = limb(1.0); limbs.armR.position.set(0.13, 2.15, 0); player.add(limbs.armR);
-    limbs.legL = limb(1.05); limbs.legL.position.set(-0.12, 1.0, 0); player.add(limbs.legL);
-    limbs.legR = limb(1.05); limbs.legR.position.set(0.12, 1.0, 0); player.add(limbs.legR);
+    // 팔: 셔츠 소매 + 좀비 살색 팔뚝/손
+    limbs.armL = limb(1.0, shirtMat, skinMat, skinMat, 0.12); limbs.armL.position.set(-0.25, 2.12, 0); player.add(limbs.armL);
+    limbs.armR = limb(1.0, shirtMat, skinMat, skinMat, 0.12); limbs.armR.position.set(0.25, 2.12, 0); player.add(limbs.armR);
+    // 다리: 바지 + 어두운 신발
+    limbs.legL = limb(1.05, pantsMat, pantsMat, shoeMat, 0.14); limbs.legL.position.set(-0.13, 1.0, 0); player.add(limbs.legL);
+    limbs.legR = limb(1.05, pantsMat, pantsMat, shoeMat, 0.14); limbs.legR.position.set(0.13, 1.0, 0); player.add(limbs.legR);
   })();
   scene.add(player);
 
@@ -472,13 +504,16 @@
 
     // ---- running animation ----
     if (state.onGround && state.running) {
-      state.runCycle += dt * (7 + state.speed * 0.32);
-      const s = Math.sin(state.runCycle) * 0.95;
-      limbs.legL.rotation.x = s; limbs.legR.rotation.x = -s;
-      limbs.armL.rotation.x = -s * 0.8; limbs.armR.rotation.x = s * 0.8;
+      state.runCycle += dt * (6 + state.speed * 0.26);
+      const sway = Math.sin(state.runCycle);
+      // 뻣뻣한 좀비 걸음 (작은 보폭)
+      limbs.legL.rotation.x = sway * 0.55; limbs.legR.rotation.x = -sway * 0.55;
+      // 앞으로 뻗은 좀비 팔 + 약한 흔들림
+      limbs.armL.rotation.x = -1.4 + sway * 0.12; limbs.armR.rotation.x = -1.4 - sway * 0.12;
+      limbs.armL.rotation.z = 0.1;  limbs.armR.rotation.z = -0.1;
     } else if (!state.onGround) {
-      limbs.legL.rotation.x = -0.6; limbs.legR.rotation.x = -0.95;
-      limbs.armL.rotation.x = -1.4; limbs.armR.rotation.x = -1.4;
+      limbs.legL.rotation.x = -0.5; limbs.legR.rotation.x = -0.9;
+      limbs.armL.rotation.x = -1.55; limbs.armR.rotation.x = -1.55;
     }
 
     // ---- world streaming ----

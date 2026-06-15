@@ -209,7 +209,9 @@ function playGame(id) {
   }
   const modal = document.getElementById("playModal");
   document.getElementById("playTitle").textContent = game.title;
-  document.getElementById("playFrame").src = game.playUrl;
+  // 캐시 무력화: 게임을 항상 최신 버전으로 불러오도록 주소에 버전 값을 붙인다.
+  const sep = game.playUrl.includes("?") ? "&" : "?";
+  document.getElementById("playFrame").src = game.playUrl + sep + "v=" + Date.now();
   modal.classList.remove("hidden");
   document.body.style.overflow = "hidden";
 }
