@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 800" width="640" height="800" role="img" aria-label="공동묘지 러너">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#11132a"/>
+      <stop offset="0.55" stop-color="#0a0b16"/>
+      <stop offset="1" stop-color="#070710"/>
+    </linearGradient>
+    <radialGradient id="moonGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#cfe0ff" stop-opacity="0.9"/>
+      <stop offset="0.5" stop-color="#9bb4ff" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#9bb4ff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="title" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#9be7ff"/>
+      <stop offset="1" stop-color="#c9a3ff"/>
+    </linearGradient>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b2130"/>
+      <stop offset="1" stop-color="#0c0f17"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="12"/>
+    </filter>
+  </defs>
+
+  <!-- 배경 -->
+  <rect x="6" y="6" width="628" height="788" rx="40" fill="url(#sky)" stroke="#2a3350" stroke-width="4"/>
+
+  <!-- 달 -->
+  <circle cx="470" cy="150" r="150" fill="url(#moonGlow)"/>
+  <circle cx="470" cy="150" r="74" fill="#e9eefc"/>
+  <circle cx="500" cy="135" r="14" fill="#d3dbef" opacity="0.7"/>
+  <circle cx="452" cy="178" r="10" fill="#d3dbef" opacity="0.6"/>
+  <circle cx="486" cy="180" r="7"  fill="#d3dbef" opacity="0.5"/>
+
+  <!-- 박쥐 -->
+  <g fill="#0c0d16" opacity="0.85">
+    <path d="M150 120 q12 -12 24 0 q12 -12 24 0 q-12 10 -24 6 q-12 4 -24 -6Z"/>
+    <path d="M210 90 q9 -9 18 0 q9 -9 18 0 q-9 8 -18 5 q-9 3 -18 -5Z"/>
+  </g>
+
+  <!-- 안개 -->
+  <ellipse cx="320" cy="612" rx="300" ry="40" fill="#44ff99" opacity="0.06" filter="url(#softGlow)"/>
+
+  <!-- 좀비 러너 실루엣 (앞으로 달리는 자세) -->
+  <g filter="url(#glow)">
+    <!-- 뒷다리 -->
+    <rect x="300" y="470" width="26" height="92" rx="13" fill="#586b39" transform="rotate(28 313 500)"/>
+    <!-- 앞다리 -->
+    <rect x="318" y="470" width="26" height="96" rx="13" fill="#6f8f4f" transform="rotate(-22 331 500)"/>
+    <!-- 발 -->
+    <rect x="356" y="556" width="40" height="18" rx="8" fill="#15161e" transform="rotate(-10 376 565)"/>
+    <rect x="270" y="556" width="40" height="18" rx="8" fill="#15161e" transform="rotate(14 290 565)"/>
+    <!-- 몸통 (앞으로 숙임) -->
+    <rect x="300" y="392" width="46" height="104" rx="22" fill="#46566b" transform="rotate(18 323 444)"/>
+    <!-- 머리 -->
+    <g transform="rotate(18 360 388)">
+      <circle cx="360" cy="380" r="34" fill="#7fa15a"/>
+      <circle cx="372" cy="372" r="6" fill="#ffd23f"/>
+      <path d="M348 392 q12 8 24 0" stroke="#201a18" stroke-width="4" fill="none" stroke-linecap="round"/>
+    </g>
+    <!-- 뒷팔 -->
+    <rect x="298" y="404" width="22" height="86" rx="11" fill="#6f8f4f" transform="rotate(64 309 430)"/>
+    <!-- 앞팔 (앞으로 뻗음) -->
+    <rect x="336" y="404" width="22" height="92" rx="11" fill="#7fa15a" transform="rotate(96 347 430)"/>
+    <!-- 어깨 상처 -->
+    <circle cx="332" cy="420" r="6" fill="#7a1f1f"/>
+  </g>
+
+  <!-- 땅 -->
+  <path d="M20 640 H620 V780 a20 20 0 0 1 -20 20 H40 a20 20 0 0 1 -20 -20 Z" fill="url(#ground)"/>
+
+  <!-- 묘비들 -->
+  <g fill="#5a6473" stroke="#3a4250" stroke-width="3">
+    <path d="M70 640 h54 v-44 a27 27 0 0 0 -54 0 Z"/>
+    <rect x="540" y="600" width="50" height="40" rx="6"/>
+  </g>
+  <!-- 십자가 -->
+  <g fill="#4a5260">
+    <rect x="190" y="582" width="14" height="60" rx="3"/>
+    <rect x="176" y="598" width="42" height="13" rx="3"/>
+  </g>
+
+  <!-- 타이틀 -->
+  <g text-anchor="middle" font-family="'Black Han Sans','Apple SD Gothic Neo','Malgun Gothic',sans-serif">
+    <text x="320" y="712" font-size="74" font-weight="900" fill="url(#title)" filter="url(#glow)">공동묘지 러너</text>
+    <text x="320" y="752" font-size="26" font-weight="700" letter-spacing="8" fill="#8fb9d8" font-family="Arial,Helvetica,sans-serif">CEMETERY RUNNER</text>
+  </g>
+</svg>

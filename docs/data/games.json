@@ -12,6 +12,8 @@
         "3D",
         "아케이드"
       ],
+      "thumbnail": "games/cemeteryRunner/logo.svg",
+      "banner": "games/cemeteryRunner/banner.svg",
       "playUrl": "games/cemeteryRunner/cemetery-runner.html",
       "releaseDate": "2026-06-08",
       "rating": "전체이용가",
