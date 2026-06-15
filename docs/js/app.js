@@ -75,8 +75,10 @@ function siteHead() {
     <div class="nav">${items.map((x, i) => `<span class="${i === 1 ? "active" : ""}">${x}</span>`).join("")}</div>
     <div class="head-right">
       <span class="pill tilt" id="searchToggle">🔍 검색</span>
-      <span class="btn tilt">회원가입</span>
-      <span class="btn go tilt">로그인</span>
+      <span id="authArea">
+        <span class="btn tilt" id="signupBtn">회원가입</span>
+        <span class="btn go tilt" id="loginBtn">로그인</span>
+      </span>
     </div>
   </div>`;
 }
@@ -220,6 +222,7 @@ function closePlay() {
 
 // ── 이벤트 바인딩 ──────────────────────────────────────
 function bindHeader() {
+  if (window.GaminiAuth) window.GaminiAuth.refreshHeader();
   const logo = document.getElementById("homeLogo");
   if (logo) logo.onclick = () => window.scrollTo({ top: 0, behavior: "smooth" });
 

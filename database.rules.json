@@ -1,0 +1,27 @@
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid",
+        "username":   { ".validate": "newData.isString() && newData.val().length <= 30" },
+        "provider":   { ".validate": "newData.isString()" },
+        "visitCount": { ".validate": "newData.isNumber()" },
+        "games": {
+          "$gameId": {
+            "bestScore": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 1000000" },
+            "lastScore": { ".validate": "newData.isNumber()" },
+            "plays":     { ".validate": "newData.isNumber()" }
+          }
+        }
+      }
+    },
+    "scores": {
+      ".read": true,
+      "$entry": {
+        ".write": "auth != null && !data.exists() && newData.child('uid').val() === auth.uid",
+        ".validate": "newData.hasChildren(['nickname','score','uid']) && newData.child('score').isNumber() && newData.child('score').val() >= 0 && newData.child('score').val() <= 1000000 && newData.child('nickname').isString() && newData.child('nickname').val().length <= 12"
+      }
+    }
+  }
+}

@@ -459,7 +459,10 @@
     // tangent of centre line (for facing & lateral axis). Path is x = f(z), z = -d.
     const dx = (centerX(state.d + 0.5) - centerX(state.d - 0.5)); // d(centerX)/dd
     const tangent = new THREE.Vector3(-dx, 0, -1).normalize(); // forward dir in world
-    const right = new THREE.Vector3(tangent.z, 0, -tangent.x).normalize(); // perpendicular
+    // 장애물 그룹은 회전 없이 배치되어 lat축 = 월드 +X 이므로,
+    // 플레이어의 좌우 축도 +lateral = +X(화면 오른쪽)가 되도록 맞춘다.
+    // (이 부호가 반대였던 탓에 조작이 반대로 되고, 충돌 판정이 화면과 좌우로 뒤집혀 있었음)
+    const right = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize(); // perpendicular
     const px = cx + right.x * state.lateral;
     const pz = -state.d + right.z * state.lateral;
     player.position.set(px, state.py, pz);
