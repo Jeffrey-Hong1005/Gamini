@@ -15,7 +15,7 @@ const state = {
 // ── 데이터 로드 ────────────────────────────────────────
 async function loadGames() {
   try {
-    const res = await fetch("data/games.json");
+    const res = await fetch("data/games.json?v=" + Date.now());
     const data = await res.json();
     state.games = data.games || [];
   } catch (err) {
