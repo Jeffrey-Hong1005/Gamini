@@ -17,10 +17,13 @@
       }
     },
     "scores": {
-      ".read": true,
-      "$entry": {
-        ".write": "auth != null && !data.exists() && newData.child('uid').val() === auth.uid",
-        ".validate": "newData.hasChildren(['nickname','score','uid']) && newData.child('score').isNumber() && newData.child('score').val() >= 0 && newData.child('score').val() <= 1000000 && newData.child('nickname').isString() && newData.child('nickname').val().length <= 12"
+      "$game": {
+        ".read": true,
+        ".indexOn": ["score"],
+        "$entry": {
+          ".write": "auth != null && !data.exists() && newData.child('uid').val() === auth.uid",
+          ".validate": "newData.hasChildren(['nickname','score','uid']) && newData.child('score').isNumber() && newData.child('score').val() >= 0 && newData.child('score').val() <= 1000000 && newData.child('nickname').isString() && newData.child('nickname').val().length <= 12"
+        }
       }
     }
   }

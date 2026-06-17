@@ -83,6 +83,22 @@
     <div class="big" id="finalScore">0</div>
     <div class="subtitle">최종 점수</div>
     <div class="keys" style="margin-bottom:6px">최고 점수: <b id="bestScore">0</b></div>
+
+    <div style="margin:10px 0; display:flex; gap:8px; justify-content:center;">
+      <input id="crNick" maxlength="12" placeholder="닉네임"
+        style="background:#11131d;border:2px solid #2a3350;border-radius:8px;color:#e8eefc;padding:8px 12px;font-size:15px;width:140px;outline:none;">
+      <button class="btn" id="crSubmit" style="padding:8px 16px;">랭킹 등록</button>
+    </div>
+    <div id="crStatus" class="small" style="min-height:16px;color:#9be7ff;"></div>
+
+    <div style="margin:12px auto 6px;max-width:300px;text-align:left;">
+      <div class="subtitle" style="margin-bottom:6px;">🏆 TOP 랭킹</div>
+      <ol id="crBoard" style="list-style:none;padding:0;margin:0;font-size:14px;line-height:1.9;max-height:200px;overflow:auto;">
+        <li style="opacity:.5;">불러오는 중...</li>
+      </ol>
+    </div>
+    <div id="crDbStatus" class="small" style="opacity:.55;margin-bottom:8px;"></div>
+
     <button class="btn" id="retryBtn">다시 하기</button>
     <div class="small"><kbd>R</kbd> 키로도 다시 시작</div>
   </div>
@@ -445,6 +461,7 @@
     document.getElementById('finalScore').textContent = Math.floor(state.score);
     document.getElementById('bestScore').textContent = state.best;
     document.getElementById('gameOver').classList.remove('hidden');
+    if (window.GaminiCR) window.GaminiCR.onGameOver(Math.floor(state.score));
   }
 
   document.getElementById('startBtn').addEventListener('click', startGame);
@@ -589,6 +606,109 @@
   updateRibbon(0);
   loop();
 })();
+</script>
+
+<!-- ================= Firebase 랭킹 연동 (게임 로직과 분리된 모듈) ================= -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getDatabase, ref, push, query, orderByChild, limitToLast, onValue,
+    serverTimestamp, get, update as dbUpdate, increment
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+  import { getAuth, onAuthStateChanged, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { firebaseConfig, isConfigured } from "../../js/firebase-config.js";
+
+  const GAME_ID = "cemeteryRunner";
+  const SCORES_NODE = "scores/" + GAME_ID;   // 게임별로 분리 저장
+
+  const $ = (id) => document.getElementById(id);
+  const escapeHtml = (s) => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+  const setStatus = (m) => { const e = $("crStatus"); if (e) e.textContent = m || ""; };
+  const setDbStatus = (m) => { const e = $("crDbStatus"); if (e) e.textContent = m || ""; };
+
+  let db = null, auth = null, currentUser = null, accountName = "";
+  let lastScore = 0, submittedFor = -1;
+
+  if (isConfigured) {
+    try {
+      const app = initializeApp(firebaseConfig);
+      db = getDatabase(app);
+      auth = getAuth(app);
+      onAuthStateChanged(auth, (user) => {
+        if (!user) { currentUser = null; accountName = ""; signInAnonymously(auth).catch(() => {}); return; }
+        currentUser = user;
+        if (!user.isAnonymous) {
+          accountName = (user.displayName || (user.email ? user.email.split("@")[0] : "")) || "";
+          setDbStatus("랭킹 연결됨 · " + (accountName || "계정") + " 기록 저장");
+          const nick = $("crNick"); if (nick && !nick.value && accountName) nick.value = accountName;
+        } else {
+          setDbStatus("랭킹 연결됨 (게스트)");
+        }
+      });
+      setDbStatus("랭킹 연결됨");
+      listenLeaderboard();
+    } catch (e) {
+      setDbStatus("Firebase 연결 실패: " + e.message);
+    }
+  } else {
+    setDbStatus("Firebase 미설정 — 설정 후 랭킹이 표시됩니다");
+    const board = $("crBoard");
+    if (board) board.innerHTML = '<li style="opacity:.5;">Firebase 설정 후 랭킹이 표시됩니다</li>';
+  }
+
+  function listenLeaderboard() {
+    if (!db) return;
+    const q = query(ref(db, SCORES_NODE), orderByChild("score"), limitToLast(20));
+    onValue(q, (snap) => {
+      const entries = [];
+      snap.forEach((c) => { const v = c.val(); entries.push({ nickname: v.nickname || "익명", score: v.score || 0 }); });
+      entries.sort((a, b) => b.score - a.score);
+      const board = $("crBoard");
+      if (!board) return;
+      if (!entries.length) { board.innerHTML = '<li style="opacity:.5;">아직 등록된 기록이 없습니다</li>'; return; }
+      board.innerHTML = entries.slice(0, 10).map((e, i) =>
+        `<li><span style="width:1.6em;display:inline-block;color:#9be7ff;font-weight:700;">${i + 1}</span>${escapeHtml(e.nickname)}<span style="float:right;color:#c9a3ff;">${e.score}</span></li>`
+      ).join("");
+    }, (err) => setDbStatus("랭킹 불러오기 실패: " + err.message));
+  }
+
+  async function saveToAccount(score) {
+    if (!db || !currentUser || currentUser.isAnonymous) return;
+    try {
+      const gref = ref(db, `users/${currentUser.uid}/games/${GAME_ID}`);
+      const snap = await get(gref);
+      const prevBest = snap.exists() && typeof snap.val().bestScore === "number" ? snap.val().bestScore : 0;
+      await dbUpdate(gref, { bestScore: Math.max(prevBest, score), lastScore: score, plays: increment(1), lastPlayed: serverTimestamp() });
+    } catch (e) { console.error("계정 기록 저장 실패:", e); }
+  }
+
+  async function submit() {
+    const nick = (($("crNick").value || accountName || "익명").trim() || "익명").slice(0, 12);
+    if (submittedFor === lastScore) { setStatus("이미 등록했어요"); return; }
+    saveToAccount(lastScore);
+    if (!db) { setStatus("Firebase 미설정이라 등록되지 않았습니다"); return; }
+    try {
+      setStatus("랭킹 등록 중...");
+      await push(ref(db, SCORES_NODE), {
+        nickname: nick, score: lastScore,
+        uid: currentUser ? currentUser.uid : null, createdAt: serverTimestamp()
+      });
+      submittedFor = lastScore;
+      setStatus(currentUser && !currentUser.isAnonymous ? "랭킹 등록 + 계정 기록 저장 완료!" : "랭킹 등록 완료!");
+    } catch (e) { setStatus("등록 실패: " + e.message); }
+  }
+
+  const btn = $("crSubmit"); if (btn) btn.addEventListener("click", submit);
+  const nickInput = $("crNick"); if (nickInput) nickInput.addEventListener("keydown", (e) => { if (e.key === "Enter") submit(); });
+
+  // 게임(IIFE)에서 게임오버 시 호출하는 다리
+  window.GaminiCR = {
+    configured: isConfigured,
+    onGameOver(score) {
+      lastScore = score; submittedFor = -1; setStatus("");
+      const nick = $("crNick"); if (nick && !nick.value && accountName) nick.value = accountName;
+    }
+  };
 </script>
 </body>
 </html>

@@ -13,13 +13,13 @@
 // ============================================================
 
 export const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT.firebaseapp.com",
-  databaseURL: "https://YOUR_PROJECT-default-rtdb.firebaseio.com",
-  projectId: "YOUR_PROJECT",
-  storageBucket: "YOUR_PROJECT.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID",
+  apiKey: "AIzaSyDspudc3xpAEDLaU9uuhIv-7GTVM3V2zSk",
+  authDomain: "gamini-c6224.firebaseapp.com",
+  databaseURL: "https://gamini-c6224-default-rtdb.firebaseio.com",
+  projectId: "gamini-c6224",
+  storageBucket: "gamini-c6224.firebasestorage.app",
+  messagingSenderId: "574209229113",
+  appId: "1:574209229113:web:97dace0ca51484316c28e8",
 };
 
 // 설정이 실제 값으로 채워졌는지 확인 (placeholder 그대로면 false)
