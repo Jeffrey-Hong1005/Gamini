@@ -1,6 +1,23 @@
 {
   "games": [
     {
+      "id": "tileStack",
+      "title": "타일 스택",
+      "subtitle": "무게중심 3D 타일 쌓기",
+      "heroTag": "신작 출시",
+      "description": "네 방향에서 날아오는 타일을 Enter로 떨어뜨려 쌓으세요. 무게중심이 어긋나면 탑이 점점 기울고, 한계를 넘으면 무너집니다. 속도는 점점 빨라지고 점수는 쌓은 높이입니다.",
+      "genre": "아케이드",
+      "tags": ["3D", "퍼즐", "아케이드"],
+      "thumbnail": "games/tileStack/logo.svg",
+      "banner": "games/tileStack/banner.svg",
+      "playUrl": "games/tileStack/tile-stack.html",
+      "releaseDate": "2026-06-18",
+      "rating": "전체이용가",
+      "featured": true,
+      "isNew": true,
+      "enabled": true
+    },
+    {
       "id": "rolyRush",
       "title": "롤리폴리 러시",
       "subtitle": "3D 무한 장애물 코스",

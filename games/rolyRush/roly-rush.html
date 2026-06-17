@@ -74,165 +74,121 @@
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x9fd8ff);
-  scene.fog = new THREE.Fog(0x9fd8ff, 130, 260);
+  scene.fog = new THREE.Fog(0x9fd8ff, 90, 200);
 
-  const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 600);
+  const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 500);
   function resize() { const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }
   window.addEventListener('resize', resize); resize();
 
-  scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-  const sun = new THREE.DirectionalLight(0xfff2d8, 0.9); sun.position.set(0.5, 1, 0.3); scene.add(sun);
-  scene.add(new THREE.HemisphereLight(0xcfefff, 0x6b7a4a, 0.5));
+  scene.add(new THREE.AmbientLight(0xffffff, 0.85));
+  const sun = new THREE.DirectionalLight(0xfff2d8, 0.85); sun.position.set(0.5, 1, 0.3); scene.add(sun);
+  scene.add(new THREE.HemisphereLight(0xcfefff, 0x88a0b0, 0.5));
 
-  // ===================== Terrain height (지형 기복) =====================
-  function hash(ix, iz) { let h = (ix | 0) * 374761393 + (iz | 0) * 668265263; h = (h ^ (h >> 13)) * 1274126177; h = (h ^ (h >> 16)); return ((h & 0x7fffffff) % 100000) / 100000; }
-  function vnoise(x, z) {
-    const x0 = Math.floor(x), z0 = Math.floor(z), fx = x - x0, fz = z - z0;
-    const a = hash(x0, z0), b = hash(x0 + 1, z0), c = hash(x0, z0 + 1), d = hash(x0 + 1, z0 + 1);
-    const ux = fx * fx * (3 - 2 * fx), uz = fz * fz * (3 - 2 * fz);
-    return a * (1 - ux) * (1 - uz) + b * ux * (1 - uz) + c * (1 - ux) * uz + d * ux * uz;
-  }
-  function fbm(x, z, oct) { let s = 0, a = 0.5, f = 1, n = 0; for (let i = 0; i < oct; i++) { s += a * vnoise(x * f, z * f); n += a; f *= 2; a *= 0.5; } return s / n; }
-  // 완만한 기복 + 간간이 솟은 둔덕 (코스로 다닐 수 있는 수준)
-  function terrainH(x, z) {
-    let h = (fbm(x * 0.02 + 7, z * 0.02 + 7, 3) - 0.5) * 9;       // ±4.5 구릉
-    h += Math.max(0, fbm(x * 0.025, z * 0.022, 2) - 0.55) * 36;   // 둔덕(최대 ~16)
-    return h;
-  }
-  function colorFor(h) {
-    if (h < 3) return [0.42, 0.68, 0.36];
-    if (h < 9) return [0.48, 0.6, 0.31];
-    if (h < 16) return [0.55, 0.46, 0.32];
-    return [0.62, 0.62, 0.64];
-  }
+  // ===================== Course: 평평한 2배폭 길 =====================
+  const W = 18, HALF = W / 2;     // 폭 ≈ 원래(9)의 2배
+  const GROUND_Y = 0, KILL_Y = -20;
 
-  const W = 135, HALF = W / 2;     // 코스 폭(원래 9의 15배)
-  const KILL_Y = -28;
-
-  // ===================== Course (전진형 스트립 + 갭 + 장애물) =====================
   const strips = [];     // {z0,z1}
   const modules = [];    // {z0,z1, meshes:[], obs:[]}
   let zCursor = 0, moduleCount = 0;
 
-  function buildStripMesh(z0, z1) {
-    const len = z1 - z0, segZ = Math.max(4, Math.round(len / 5)), segX = 28;
-    const geo = new THREE.PlaneGeometry(W, len, segX, segZ);
-    geo.rotateX(-Math.PI / 2);
-    const pos = geo.attributes.position, cz = (z0 + z1) / 2;
-    const colors = new Float32Array(pos.count * 3);
-    for (let i = 0; i < pos.count; i++) {
-      const wx = pos.getX(i), wz = pos.getZ(i) + cz;
-      const h = terrainH(wx, wz); pos.setY(i, h);
-      const c = colorFor(h); colors[i * 3] = c[0]; colors[i * 3 + 1] = c[1]; colors[i * 3 + 2] = c[2];
-    }
-    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-    geo.computeVertexNormals();
-    const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1 }));
-    mesh.position.set(0, 0, cz);
-    scene.add(mesh); return mesh;
-  }
-
-  // --- 장애물 팩토리 ---
+  const STRIP_COLORS = [0xf6d7a8, 0xf3c98f, 0xe9efa0, 0xd6f0b0];
+  const matEdge = new THREE.MeshStandardMaterial({ color: 0xff8fc7, roughness: 0.7 });
   const matRed = new THREE.MeshStandardMaterial({ color: 0xff5d7e, roughness: 0.6 });
   const matPurple = new THREE.MeshStandardMaterial({ color: 0x6a4cff, roughness: 0.6 });
   const matOrange = new THREE.MeshStandardMaterial({ color: 0xff9e3d, roughness: 0.6 });
   const matPole = new THREE.MeshStandardMaterial({ color: 0xf0f0f5, roughness: 0.5 });
   const matRock = new THREE.MeshStandardMaterial({ color: 0x8a8f99, roughness: 0.9 });
 
+  function buildStripMesh(z0, z1, idx) {
+    const len = z1 - z0, cz = (z0 + z1) / 2;
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(W, 1.0, len), new THREE.MeshStandardMaterial({ color: STRIP_COLORS[idx % STRIP_COLORS.length], roughness: 1 }));
+    floor.position.set(0, GROUND_Y - 0.5, cz); scene.add(floor);
+    // 가장자리 표시(시야용, 충돌 없음)
+    const eL = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, len), matEdge); eL.position.set(-HALF + 0.25, GROUND_Y + 0.25, cz); scene.add(eL);
+    const eR = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, len), matEdge); eR.position.set(HALF - 0.25, GROUND_Y + 0.25, cz); scene.add(eR);
+    return [floor, eL, eR];
+  }
+
+  // --- 장애물 ---
   function makeObstacle(type, z0, z1, diff, mod) {
     const cz = (z0 + z1) / 2;
-    const baseY = (x, z) => terrainH(x, z);
 
     if (type === 'sweeper') {
-      const barLen = W - 14, h = 1.4, spin = (1.1 + diff * 0.7) * (Math.random() < 0.5 ? 1 : -1);
-      const bar = new THREE.Mesh(new THREE.BoxGeometry(barLen, 0.7, 1.1), matRed);
-      bar.position.set(0, baseY(0, cz) + h, cz); scene.add(bar); mod.meshes.push(bar);
-      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, h + 0.8, 12), matPole);
-      hub.position.set(0, baseY(0, cz) + (h + 0.8) / 2, cz); scene.add(hub); mod.meshes.push(hub);
+      const barLen = W - 2.5, h = 1.15, spin = (1.4 + diff * 0.9) * (Math.random() < 0.5 ? 1 : -1);
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(barLen, 0.55, 0.9), matRed);
+      bar.position.set(0, h, cz); scene.add(bar); mod.meshes.push(bar);
+      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, h + 0.6, 12), matPole);
+      hub.position.set(0, (h + 0.6) / 2, cz); scene.add(hub); mod.meshes.push(hub);
       mod.obs.push({
         update: (dt, t) => { bar.rotation.y = t * spin; },
-        hit: (px, py, pz, hAbove) => {
-          if (hAbove > 1.9) return false;
+        hit: (px, py, pz) => {
+          if (py > 1.7) return false;     // 점프로 넘김
           const dx = px, dz = pz - cz, a = -bar.rotation.y;
           const lx = dx * Math.cos(a) - dz * Math.sin(a), lz = dx * Math.sin(a) + dz * Math.cos(a);
-          return Math.abs(lx) < barLen / 2 && Math.abs(lz) < 0.9 + 0.6;
+          return Math.abs(lx) < barLen / 2 && Math.abs(lz) < 1.1;
         },
-        knock: (px) => ({ x: Math.cos(bar.rotation.y) * (spin > 0 ? -1 : 1), z: Math.sin(bar.rotation.y) * (spin > 0 ? -1 : 1) })
+        knock: () => ({ x: Math.cos(bar.rotation.y) * (spin > 0 ? -1 : 1), z: Math.sin(bar.rotation.y) * (spin > 0 ? -1 : 1) })
       });
 
     } else if (type === 'pendulum') {
-      const n = 3 + Math.floor(diff);
-      for (let k = 0; k < n; k++) {
-        const bx = -HALF + (k + 0.5) * (W / n) + (Math.random() - 0.5) * 8;
-        const pivY = baseY(bx, cz) + 9, armLen = 8;
+      const spots = diff > 1.6 ? [-4.5, 4.5] : [(Math.random() < 0.5 ? -3.5 : 3.5)];
+      for (const bx of spots) {
+        const pivY = 7, armLen = 6;
         const pivot = new THREE.Group(); pivot.position.set(bx, pivY, cz); scene.add(pivot); mod.meshes.push(pivot);
-        const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, armLen, 8), matPole); arm.position.y = -armLen / 2; pivot.add(arm);
-        const ball = new THREE.Mesh(new THREE.SphereGeometry(1.2, 16, 14), matPurple); ball.position.y = -armLen; pivot.add(ball);
-        const w = 1.3 + diff * 0.6, ph = Math.random() * 6.28, sw = 1.1;
+        const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, armLen, 8), matPole); arm.position.y = -armLen / 2; pivot.add(arm);
+        const ball = new THREE.Mesh(new THREE.SphereGeometry(1.05, 16, 14), matPurple); ball.position.y = -armLen; pivot.add(ball);
+        const w = 1.5 + diff * 0.6, ph = Math.random() * 6.28, sw = 1.0;
         mod.obs.push({
           update: (dt, t) => { pivot.rotation.x = Math.sin(t * w + ph) * sw; },
-          hit: (px, py, pz, hAbove) => {
-            const bz = cz - Math.sin(pivot.rotation.x) * armLen;
-            const by = pivY - Math.cos(pivot.rotation.x) * armLen;
-            return Math.abs(px - bx) < 1.2 + 0.6 && Math.abs(pz - bz) < 1.2 + 0.6 && Math.abs((py + 0.85) - by) < 1.6;
+          hit: (px, py, pz) => {
+            const bz = cz - Math.sin(pivot.rotation.x) * armLen, by = pivY - Math.cos(pivot.rotation.x) * armLen;
+            return Math.abs(px - bx) < 1.7 && Math.abs(pz - bz) < 1.7 && Math.abs((py + 0.85) - by) < 1.6;
           },
-          knock: () => ({ x: (Math.random() - 0.5), z: 1 })
+          knock: (px) => ({ x: px - bx >= 0 ? 1 : -1, z: 0.3 })
         });
       }
 
     } else if (type === 'pushers') {
-      const n = 2 + Math.floor(diff);
+      const n = 1 + Math.floor(diff);
       for (let k = 0; k < n; k++) {
-        const side = k % 2 === 0 ? -1 : 1, pz = z0 + 8 + k * ((z1 - z0 - 12) / Math.max(1, n - 1));
-        const block = new THREE.Mesh(new THREE.BoxGeometry(7, 3.2, 4), matOrange);
-        scene.add(block); mod.meshes.push(block);
-        const w = 1.1 + diff * 0.5, ph = Math.random() * 6.28, reach = HALF * 0.7;
+        const side = k % 2 === 0 ? -1 : 1, pz = z0 + 4 + k * Math.max(5, (z1 - z0 - 6) / Math.max(1, n - 1));
+        const block = new THREE.Mesh(new THREE.BoxGeometry(5, 2.8, 3), matOrange); scene.add(block); mod.meshes.push(block);
+        const w = 1.3 + diff * 0.6, ph = Math.random() * 6.28, reach = W * 0.78;
         mod.obs.push({
-          update: (dt, t) => { const ext = (Math.sin(t * w + ph) * 0.5 + 0.5) * reach; block.position.set(side * (HALF + 3 - ext), baseY(side * HALF, pz) + 1.6, pz); },
-          hit: (px, py, pz2, hAbove) => hAbove < 3.2 && Math.abs(px - block.position.x) < 3.5 + 0.6 && Math.abs(pz2 - pz) < 2 + 0.6,
-          knock: () => ({ x: side, z: 0 })   // 바깥쪽으로 밀어 떨어뜨림
+          update: (dt, t) => { const ext = (Math.sin(t * w + ph) * 0.5 + 0.5) * reach; block.position.set(side * (HALF + 2.5 - ext), 1.4, pz); },
+          hit: (px, py, pz2) => py < 2.8 && Math.abs(px - block.position.x) < 2.5 + 0.6 && Math.abs(pz2 - pz) < 1.5 + 0.6,
+          knock: () => ({ x: side, z: 0 })
         });
       }
 
     } else if (type === 'movingWall') {
-      const gapW = 16, wallH = 4.5;
-      const segW = (W - gapW) / 2;
-      const wallL = new THREE.Mesh(new THREE.BoxGeometry(segW, wallH, 1.4), matRed);
-      const wallR = new THREE.Mesh(new THREE.BoxGeometry(segW, wallH, 1.4), matRed);
-      scene.add(wallL); scene.add(wallR); mod.meshes.push(wallL, wallR);
-      const w = 0.8 + diff * 0.45, ph = Math.random() * 6.28, slideAmp = HALF - gapW / 2 - 2;
+      const gapW = 5.5, wallH = 4, segW = (W - gapW) / 2;
+      const wL = new THREE.Mesh(new THREE.BoxGeometry(segW, wallH, 1.1), matRed);
+      const wR = new THREE.Mesh(new THREE.BoxGeometry(segW, wallH, 1.1), matRed);
+      scene.add(wL); scene.add(wR); mod.meshes.push(wL, wR);
+      const w = 1.0 + diff * 0.5, ph = Math.random() * 6.28, amp = HALF - gapW / 2 - 1;
       mod.obs.push({
-        update: (dt, t) => {
-          const gx = Math.sin(t * w + ph) * slideAmp;   // gap center x
-          wallL.position.set(gx - gapW / 2 - segW / 2, baseY(0, cz) + wallH / 2, cz);
-          wallR.position.set(gx + gapW / 2 + segW / 2, baseY(0, cz) + wallH / 2, cz);
+        update: (dt, t) => { const gx = Math.sin(t * w + ph) * amp; wL.position.set(gx - gapW / 2 - segW / 2, wallH / 2, cz); wR.position.set(gx + gapW / 2 + segW / 2, wallH / 2, cz); },
+        hit: (px, py, pz) => {
+          if (py > wallH) return false;
+          if (Math.abs(pz - cz) > 1.1) return false;
+          const inL = px > wL.position.x - segW / 2 && px < wL.position.x + segW / 2;
+          const inR = px > wR.position.x - segW / 2 && px < wR.position.x + segW / 2;
+          return inL || inR;
         },
-        hit: (px, py, pz, hAbove) => {
-          if (hAbove > wallH) return false;
-          if (Math.abs(pz - cz) > 0.7 + 0.6) return false;
-          const inL = px < wallL.position.x + segW / 2, inLx = px > wallL.position.x - segW / 2;
-          const inR = px > wallR.position.x - segW / 2, inRx = px < wallR.position.x + segW / 2;
-          return (inL && inLx) || (inR && inRx);
-        },
-        knock: (px) => ({ x: 0, z: -1 })
+        knock: () => ({ x: 0, z: -1 })
       });
 
-    } else { // boulder: 굴러오는 바위
-      const n = 1 + Math.floor(diff * 0.7);
+    } else { // boulder
+      const n = 1 + Math.floor(diff * 0.8);
       for (let k = 0; k < n; k++) {
-        const ball = new THREE.Mesh(new THREE.SphereGeometry(2.2, 16, 14), matRock);
-        scene.add(ball); mod.meshes.push(ball);
-        const st = { bx: (Math.random() * 2 - 1) * (HALF - 4), bz: z1 - 2 - k * 6, sp: 14 + diff * 8, roll: 0 };
+        const ball = new THREE.Mesh(new THREE.SphereGeometry(1.5, 16, 14), matRock); scene.add(ball); mod.meshes.push(ball);
+        const st = { bx: (Math.random() * 2 - 1) * (HALF - 2), bz: z1 - 2 - k * 5, sp: 13 + diff * 7, roll: 0 };
         mod.obs.push({
-          update: (dt) => {
-            st.bz -= st.sp * dt;
-            if (st.bz < z0 - 4) { st.bz = z1 - 2; st.bx = (Math.random() * 2 - 1) * (HALF - 4); }
-            st.roll += dt * 4;
-            ball.position.set(st.bx, baseY(st.bx, st.bz) + 2.2, st.bz);
-            ball.rotation.x = st.roll;
-          },
-          hit: (px, py, pz, hAbove) => hAbove < 4 && Math.hypot(px - st.bx, pz - st.bz) < 2.2 + 0.7,
-          knock: (px) => ({ x: px - st.bx >= 0 ? 1 : -1, z: -0.5 })
+          update: (dt) => { st.bz -= st.sp * dt; if (st.bz < z0 - 3) { st.bz = z1 - 2; st.bx = (Math.random() * 2 - 1) * (HALF - 2); } st.roll += dt * 5; ball.position.set(st.bx, 1.5, st.bz); ball.rotation.x = st.roll; },
+          hit: (px, py, pz) => py < 3 && Math.hypot(px - st.bx, pz - st.bz) < 1.5 + 0.6,
+          knock: (px) => ({ x: px - st.bx >= 0 ? 1 : -1, z: -0.4 })
         });
       }
     }
@@ -240,24 +196,23 @@
 
   function pickTypes(i) {
     const all = ['sweeper', 'pendulum', 'pushers', 'movingWall', 'boulder'];
-    if (i < 2) return ['sweeper'];                 // 도입부
-    const count = i < 5 ? 1 : (i < 12 ? 2 : 3);    // 갈수록 장애물 수 증가
-    const picks = [];
-    const pool = all.slice();
+    if (i < 2) return ['sweeper'];
+    const count = i < 5 ? 2 : 3;          // 빽빽하게
+    const pool = all.slice(), picks = [];
     for (let k = 0; k < count && pool.length; k++) picks.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
     return picks;
   }
 
   function addModule() {
     const i = moduleCount++;
-    const diff = Math.min(1 + i * 0.05, 2.6);
+    const diff = Math.min(1 + i * 0.06, 2.8);
     let gap = 0;
-    if (i > 1 && Math.random() < Math.min(0.18 + i * 0.012, 0.5)) gap = 5 + Math.random() * 3 + diff * 2.2;
+    if (i > 1 && Math.random() < Math.min(0.2 + i * 0.015, 0.5)) gap = 4 + Math.random() * 2 + diff * 1.8;
     zCursor += gap;
-    const len = 40 + Math.random() * 16;
+    const len = 18 + Math.random() * 8;
     const z0 = zCursor, z1 = z0 + len;
     const mod = { z0, z1, meshes: [], obs: [] };
-    mod.meshes.push(buildStripMesh(z0, z1));
+    mod.meshes.push.apply(mod.meshes, buildStripMesh(z0, z1, i));
     strips.push({ z0, z1 });
     for (const t of pickTypes(i)) makeObstacle(t, z0, z1, diff, mod);
     modules.push(mod);
@@ -265,8 +220,8 @@
   }
 
   function ensureCourse() {
-    while (zCursor < state.pos.z + 220) addModule();
-    const cut = state.pos.z - 70;
+    while (zCursor < state.pos.z + 180) addModule();
+    const cut = state.pos.z - 60;
     while (modules.length && modules[0].z1 < cut) {
       const m = modules.shift();
       for (const mesh of m.meshes) { scene.remove(mesh); if (mesh.geometry) mesh.geometry.dispose(); }
@@ -275,9 +230,9 @@
   }
 
   function groundY(px, pz) {
-    if (Math.abs(px) > HALF) return null;            // 측면 밖 = 허공
-    for (const s of strips) if (pz >= s.z0 && pz <= s.z1) return terrainH(px, pz);
-    return null;                                     // 갭 = 허공
+    if (Math.abs(px) > HALF) return null;
+    for (const s of strips) if (pz >= s.z0 && pz <= s.z1) return GROUND_Y;
+    return null;
   }
 
   // ===================== Player =====================
@@ -303,8 +258,8 @@
     invuln: 0, facing: 0, dist: 0, time: 0,
   };
   let best = 0;
-  const GRAV = 24, MOVE = 12.5, AIR = 0.5, JUMP_V = 11.6;
-  const DIVE_FWD = 16, DIVE_UP = 3.6, SLIDE_TIME = 0.28, GROUND_SNAP = 0.9;
+  const GRAV = 24, MOVE = 12, AIR = 0.5, JUMP_V = 11.6;
+  const DIVE_FWD = 16, DIVE_UP = 3.6, SLIDE_TIME = 0.28, GROUND_SNAP = 0.6;
 
   // ===================== Input =====================
   const keys = {};
@@ -316,8 +271,8 @@
   });
   window.addEventListener('keyup', (e) => { keys[e.code] = false; if (e.code === 'Space') jumpLatched = false; });
 
-  let yaw = 0, pitch = 0.5;
-  const CAM_DIST = 13, CAM_BASE_H = 5.5;
+  let yaw = 0, pitch = 0.45;
+  const CAM_DIST = 11, CAM_BASE_H = 5;
   function rotateBy(dx, dy) { yaw -= dx * 0.0026; pitch += dy * 0.0022; pitch = Math.max(0.12, Math.min(1.2, pitch)); }
   window.addEventListener('mousemove', (e) => { if (state.running) rotateBy(e.movementX || 0, e.movementY || 0); });
   canvas.addEventListener('click', () => { if (state.running && canvas.requestPointerLock) canvas.requestPointerLock(); });
@@ -351,11 +306,8 @@
     document.getElementById('gameOver').classList.remove('hidden');
   }
 
-  // ===================== Update =====================
   function update(dt) {
     state.time += dt;
-
-    // 장애물은 항상 갱신(미리보기 포함)
     for (const m of modules) for (const o of m.obs) o.update(dt, state.time);
 
     if (state.running && !state.over) {
@@ -376,41 +328,33 @@
       state.vel.y -= GRAV * dt;
       state.pos.x += state.vel.x * dt; state.pos.y += state.vel.y * dt; state.pos.z += state.vel.z * dt;
 
-      // 지면
       const gy = groundY(state.pos.x, state.pos.z);
       if (gy !== null && state.vel.y <= 0 && state.pos.y <= gy + GROUND_SNAP) {
         if (!state.onGround && state.diving) { state.diving = false; state.sliding = true; state.slideT = SLIDE_TIME; }
         state.pos.y = gy; state.vel.y = 0; state.onGround = true; state.usedDouble = false;
       } else state.onGround = false;
 
-      // 장애물 충돌 → 강한 넉백
       if (state.invuln > 0) state.invuln -= dt;
       else {
-        const hAbove = gy === null ? 99 : (state.pos.y - gy);
         for (const m of modules) {
-          if (m.z1 < state.pos.z - 12 || m.z0 > state.pos.z + 12) continue;
+          if (m.z1 < state.pos.z - 10 || m.z0 > state.pos.z + 10) continue;
           let hitObj = null;
-          for (const o of m.obs) if (o.hit(state.pos.x, state.pos.y, state.pos.z, hAbove)) { hitObj = o; break; }
+          for (const o of m.obs) if (o.hit(state.pos.x, state.pos.y, state.pos.z)) { hitObj = o; break; }
           if (hitObj) {
-            const k = hitObj.knock(state.pos.x, state.pos.z);
-            const kl = Math.hypot(k.x, k.z) || 1;
-            state.vel.x = (k.x / kl) * 20; state.vel.z = (k.z / kl) * 20; state.vel.y = 8.5;
+            const k = hitObj.knock(state.pos.x, state.pos.z), kl = Math.hypot(k.x, k.z) || 1;
+            state.vel.x = (k.x / kl) * 18; state.vel.z = (k.z / kl) * 18; state.vel.y = 8;
             state.onGround = false; state.invuln = 0.5; state.sliding = false; state.diving = false;
             break;
           }
         }
       }
 
-      // 추락 = 게임 오버
-      if (state.pos.y < KILL_Y) { gameOver(); }
+      if (state.pos.y < KILL_Y) gameOver();
 
-      // 거리 기록(전진 = +z)
       if (state.pos.z > state.dist) { state.dist = state.pos.z; document.getElementById('distTag').textContent = Math.floor(state.dist); }
-
       ensureCourse();
     }
 
-    // 플레이어 메쉬 + 자세
     player.position.set(state.pos.x, state.pos.y, state.pos.z);
     let rx = 0, sy = 1;
     if (state.sliding) { rx = Math.PI / 2 * 0.8; sy = 0.6; } else if (state.diving) { rx = Math.PI / 2 * 0.6; }
@@ -418,16 +362,14 @@
     player.scale.y += (sy - player.scale.y) * Math.min(1, dt * 12);
     player.rotation.y += (state.facing - player.rotation.y) * Math.min(1, dt * 10);
 
-    // 카메라
     const off = new THREE.Vector3(-Math.sin(yaw) * Math.cos(pitch) * CAM_DIST, Math.sin(pitch) * CAM_DIST + CAM_BASE_H, -Math.cos(yaw) * Math.cos(pitch) * CAM_DIST);
     const camTarget = new THREE.Vector3(state.pos.x, state.pos.y + 1.4, state.pos.z).add(off);
     if (!camera.userData.init) { camera.position.copy(camTarget); camera.userData.init = true; }
     camera.position.lerp(camTarget, Math.min(1, dt * 6));
     camera.lookAt(state.pos.x, state.pos.y + 1.2, state.pos.z);
-    sun.position.set(state.pos.x + 60, state.pos.y + 120, state.pos.z + 40);
+    sun.position.set(state.pos.x + 40, 100, state.pos.z + 30);
   }
 
-  // ===================== Flow =====================
   function resetCourse() {
     for (const m of modules) for (const mesh of m.meshes) { scene.remove(mesh); if (mesh.geometry) mesh.geometry.dispose(); }
     modules.length = 0; strips.length = 0; zCursor = 0; moduleCount = 0;
@@ -436,10 +378,10 @@
   function restart() {
     resetCourse();
     state.running = true; state.over = false;
-    state.pos.set(0, terrainH(0, 6) + 0.3, 6); state.vel.set(0, 0, 0);
+    state.pos.set(0, GROUND_Y + 0.2, 6); state.vel.set(0, 0, 0);
     state.onGround = true; state.usedDouble = false; state.diving = false; state.sliding = false; state.slideT = 0;
-    state.invuln = 0.6; state.dist = 0; state.time = 0;
-    yaw = 0; pitch = 0.5; camera.userData.init = false;
+    state.invuln = 0.7; state.dist = 0; state.time = 0;
+    yaw = 0; pitch = 0.45; camera.userData.init = false;
     document.getElementById('distTag').textContent = '0';
     document.getElementById('bestTag').textContent = best;
     document.getElementById('startScreen').classList.add('hidden');
@@ -454,7 +396,6 @@
   const clock = new THREE.Clock();
   function loop() { const dt = Math.min(clock.getDelta(), 0.05); update(dt); renderer.render(scene, camera); requestAnimationFrame(loop); }
 
-  // 시작 전 미리보기 코스
   ensureCourse();
   loop();
 })();

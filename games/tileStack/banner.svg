@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 560" width="1600" height="560" role="img" aria-label="타일 스택">
+  <defs>
+    <linearGradient id="tb_sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1b2330"/>
+      <stop offset="1" stop-color="#0e1116"/>
+    </linearGradient>
+    <linearGradient id="tb_title" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#5fe0c0"/>
+      <stop offset="0.5" stop-color="#7a9bff"/>
+      <stop offset="1" stop-color="#c08bff"/>
+    </linearGradient>
+    <filter id="tb_soft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="9"/></filter>
+  </defs>
+
+  <rect width="1600" height="560" fill="url(#tb_sky)"/>
+
+  <!-- stars -->
+  <g fill="#ffffff" opacity="0.45">
+    <circle cx="200" cy="90" r="3"/><circle cx="380" cy="140" r="2"/>
+    <circle cx="1320" cy="110" r="3"/><circle cx="1480" cy="200" r="2.5"/>
+    <circle cx="900" cy="70" r="2"/><circle cx="1180" cy="60" r="2.5"/>
+  </g>
+
+  <!-- isometric stack on the right -->
+  <g transform="translate(1140 70)" stroke="#0e1116" stroke-width="3" stroke-linejoin="round">
+    <ellipse cx="0" cy="420" rx="230" ry="44" fill="#000000" opacity="0.35" filter="url(#tb_soft)"/>
+    <g><path d="M0 330 L180 390 L0 450 L-180 390 Z" fill="#3a4252"/>
+       <path d="M-180 390 L0 450 L0 488 L-180 428 Z" fill="#2c333f"/>
+       <path d="M180 390 L0 450 L0 488 L180 428 Z" fill="#222831"/></g>
+    <g><path d="M12 256 L176 310 L12 364 L-152 310 Z" fill="#4f93d8"/>
+       <path d="M-152 310 L12 364 L12 396 L-152 342 Z" fill="#3d74ac"/>
+       <path d="M176 310 L12 364 L12 396 L176 342 Z" fill="#315f8c"/></g>
+    <g><path d="M34 188 L182 236 L34 284 L-114 236 Z" fill="#5fcf9a"/>
+       <path d="M-114 236 L34 284 L34 316 L-114 268 Z" fill="#49a87b"/>
+       <path d="M182 236 L34 284 L34 316 L182 268 Z" fill="#3c8a66"/></g>
+    <g><path d="M20 126 L152 168 L20 210 L-112 168 Z" fill="#9b7ff0"/>
+       <path d="M-112 168 L20 210 L20 238 L-112 196 Z" fill="#7c63c6"/>
+       <path d="M152 168 L20 210 L20 238 L152 196 Z" fill="#6650a6"/></g>
+  </g>
+
+  <!-- incoming tile + arrow -->
+  <g stroke="#0e1116" stroke-width="3" stroke-linejoin="round">
+    <path d="M760 250 L860 282 L760 314 L660 282 Z" fill="#ffd36b" opacity="0.95"/>
+  </g>
+  <path d="M880 282 L980 282" stroke="#ffd36b" stroke-width="7" stroke-linecap="round" opacity="0.9"/>
+  <path d="M972 268 L998 282 L972 296 Z" fill="#ffd36b"/>
+
+  <!-- title block -->
+  <g font-family="'Black Han Sans','Apple SD Gothic Neo','Malgun Gothic',sans-serif">
+    <text x="90" y="270" font-size="120" font-weight="900" fill="url(#tb_title)">타일 스택</text>
+    <text x="96" y="340" font-size="40" font-weight="700" letter-spacing="14" fill="#8aa0c8" font-family="Arial,Helvetica,sans-serif">TILE STACK</text>
+    <text x="96" y="408" font-size="34" font-weight="600" fill="#c7d2e0">네 방향에서 날아오는 타일을 무게중심 맞춰 쌓는 3D 아케이드</text>
+  </g>
+</svg>
