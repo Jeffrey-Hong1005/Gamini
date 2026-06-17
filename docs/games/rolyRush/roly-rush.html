@@ -6,7 +6,7 @@
 <title>롤리폴리 러시 (Roly Rush)</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 100%; height: 100%; overflow: hidden; background: #8fd3ff; font-family: 'Trebuchet MS', 'Apple SD Gothic Neo', sans-serif; }
+  html, body { width: 100%; height: 100%; overflow: hidden; background: #9fd8ff; font-family: 'Trebuchet MS', 'Apple SD Gothic Neo', sans-serif; }
   #game { display: block; width: 100%; height: 100%; cursor: crosshair; }
 
   #hud {
@@ -16,36 +16,20 @@
   }
   #hud .stat { font-size: 14px; opacity: .9; letter-spacing: 1px; }
   #hud .val { font-size: 30px; font-weight: 800; }
-  #distTag { color: #fff; } #cpTag { color: #ffe98a; } #fallTag { color: #ffc1c1; }
+  #distTag { color: #fff; } #altTag { color: #bff0ff; } #maxAltTag { color: #ffe98a; }
 
-  .overlay {
-    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    text-align: center; color: #2a2350; z-index: 10; pointer-events: none;
-  }
+  .overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; color: #2a2350; z-index: 10; pointer-events: none; }
   .overlay.hidden { display: none; }
-  .panel {
-    background: rgba(255,255,255,.92); border: 3px solid #ff8fd0; border-radius: 22px;
-    padding: 30px 40px; max-width: 460px; pointer-events: auto; box-shadow: 0 18px 50px rgba(0,0,0,.25);
-  }
-  .title { font-size: 40px; font-weight: 900; letter-spacing: 1px;
-    background: linear-gradient(90deg,#ff7ac3,#7a9bff,#5fe0c0); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .panel { background: rgba(255,255,255,.93); border: 3px solid #ff8fd0; border-radius: 22px; padding: 30px 40px; max-width: 480px; pointer-events: auto; box-shadow: 0 18px 50px rgba(0,0,0,.25); }
+  .title { font-size: 40px; font-weight: 900; letter-spacing: 1px; background: linear-gradient(90deg,#ff7ac3,#7a9bff,#5fe0c0); -webkit-background-clip: text; background-clip: text; color: transparent; }
   .subtitle { margin-top: 4px; font-size: 14px; color: #8a86a8; letter-spacing: 3px; }
   .keys { margin: 20px 0; font-size: 15px; color: #4a4570; line-height: 2; }
   .keys b { color: #ff5fae; }
-  .btn {
-    margin-top: 8px; display: inline-block; cursor: pointer; padding: 13px 36px; border-radius: 999px;
-    font-size: 18px; font-weight: 800; color: #fff; background: linear-gradient(90deg,#ff7ac3,#7a9bff);
-    border: none; pointer-events: auto; letter-spacing: 1px;
-  }
+  .btn { margin-top: 8px; display: inline-block; cursor: pointer; padding: 13px 36px; border-radius: 999px; font-size: 18px; font-weight: 800; color: #fff; background: linear-gradient(90deg,#ff7ac3,#7a9bff); border: none; pointer-events: auto; letter-spacing: 1px; }
   .btn:hover { filter: brightness(1.06); }
   .small { font-size: 12px; color: #8a86a8; margin-top: 12px; }
 
-  #toast {
-    position: absolute; left: 50%; top: 22%; transform: translateX(-50%);
-    background: rgba(255,95,150,.95); color: #fff; font-weight: 800; font-size: 18px;
-    padding: 10px 22px; border-radius: 999px; z-index: 8; opacity: 0; transition: opacity .25s;
-    pointer-events: none; text-shadow: 0 1px 2px rgba(0,0,0,.2);
-  }
+  #toast { position: absolute; left: 50%; top: 20%; transform: translateX(-50%); background: rgba(122,155,255,.95); color: #fff; font-weight: 800; font-size: 18px; padding: 10px 22px; border-radius: 999px; z-index: 8; opacity: 0; transition: opacity .25s; pointer-events: none; }
   #toast.show { opacity: 1; }
 </style>
 </head>
@@ -53,9 +37,9 @@
 <canvas id="game"></canvas>
 
 <div id="hud" class="hidden">
-  <div><div class="stat">거리</div><div class="val"><span id="distTag">0</span> m</div></div>
-  <div style="text-align:center"><div class="stat">체크포인트</div><div class="val" id="cpTag">0</div></div>
-  <div style="text-align:right"><div class="stat">추락</div><div class="val" id="fallTag">0</div></div>
+  <div><div class="stat">이동 거리</div><div class="val"><span id="distTag">0</span> m</div></div>
+  <div style="text-align:center"><div class="stat">현재 고도</div><div class="val"><span id="altTag">0</span> m</div></div>
+  <div style="text-align:right"><div class="stat">최고 고도</div><div class="val"><span id="maxAltTag">0</span> m</div></div>
 </div>
 
 <div id="toast"></div>
@@ -63,13 +47,13 @@
 <div id="startScreen" class="overlay">
   <div class="panel">
     <div class="title">롤리폴리 러시</div>
-    <div class="subtitle">ROLY RUSH</div>
+    <div class="subtitle">ROLY RUSH · OPEN FIELD</div>
     <div class="keys">
-      이동 <b>W A S D</b> &nbsp;·&nbsp; 점프 <b>SPACE</b> (한/영 상관없음)<br>
-      점프 중 <b>SPACE</b> 한 번 더 → <b>다이브 슬라이딩</b><br>
-      <b>마우스 이동</b>으로 시점 회전 (화면 클릭 시 커서 고정)<br>
-      회전 바·흔들리는 추·이동 발판·갭을 피해<br>
-      최대한 멀리 달려가세요! (떨어지면 체크포인트 부활)
+      이동 <b>W A S D</b> &nbsp;·&nbsp; 점프 <b>SPACE</b> (한/영 무관)<br>
+      점프 중 <b>SPACE</b> 한 번 더 → <b>다이브</b> (틈·턱 넘기)<br>
+      <b>마우스 이동</b>으로 시점 회전 (클릭 시 커서 고정)<br>
+      드넓은 평원과 산맥을 자유롭게 누비세요.<br>
+      가파른 절벽은 <b>점프로 기어올라</b> 정상을 정복!
     </div>
     <button class="btn" id="startBtn">시작하기</button>
     <div class="small">데스크탑에서 키보드 + 마우스로 플레이하세요</div>
@@ -81,332 +65,176 @@
 (function () {
   "use strict";
 
-  // ===================== Core setup =====================
+  // ===================== Core =====================
   const canvas = document.getElementById('game');
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x8fd3ff);
-  scene.fog = new THREE.Fog(0x8fd3ff, 60, 140);
+  scene.background = new THREE.Color(0x9fd8ff);
+  scene.fog = new THREE.Fog(0x9fd8ff, 120, 240);
 
-  const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 400);
-
-  function resize() {
-    const w = window.innerWidth, h = window.innerHeight;
-    renderer.setSize(w, h);
-    camera.aspect = w / h; camera.updateProjectionMatrix();
-  }
+  const camera = new THREE.PerspectiveCamera(62, 1, 0.1, 600);
+  function resize() { const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h); camera.aspect = w / h; camera.updateProjectionMatrix(); }
   window.addEventListener('resize', resize); resize();
 
-  // ===================== Lighting =====================
-  scene.add(new THREE.AmbientLight(0xffffff, 0.85));
-  const sun = new THREE.DirectionalLight(0xfff4e0, 1.0);
-  sun.position.set(20, 40, 20); sun.castShadow = true;
-  sun.shadow.mapSize.set(1024, 1024);
-  sun.shadow.camera.left = -30; sun.shadow.camera.right = 30;
-  sun.shadow.camera.top = 30; sun.shadow.camera.bottom = -30;
-  sun.shadow.camera.far = 120;
-  scene.add(sun); scene.add(sun.target);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.78));
+  const sun = new THREE.DirectionalLight(0xfff2d8, 0.95);
+  sun.position.set(0.6, 1, 0.4); scene.add(sun);
+  const sky = new THREE.HemisphereLight(0xcfefff, 0x6b7a4a, 0.5); scene.add(sky);
 
-  // ===================== Materials =====================
+  // ===================== Procedural terrain =====================
+  function hash(ix, iz) {
+    let h = (ix | 0) * 374761393 + (iz | 0) * 668265263;
+    h = (h ^ (h >> 13)) * 1274126177;
+    h = (h ^ (h >> 16));
+    return ((h & 0x7fffffff) % 100000) / 100000;
+  }
+  function vnoise(x, z) {
+    const x0 = Math.floor(x), z0 = Math.floor(z);
+    const fx = x - x0, fz = z - z0;
+    const a = hash(x0, z0), b = hash(x0 + 1, z0), c = hash(x0, z0 + 1), d = hash(x0 + 1, z0 + 1);
+    const ux = fx * fx * (3 - 2 * fx), uz = fz * fz * (3 - 2 * fz);
+    return a * (1 - ux) * (1 - uz) + b * ux * (1 - uz) + c * (1 - ux) * uz + d * ux * uz;
+  }
+  function fbm(x, z, oct) {
+    let s = 0, a = 0.5, f = 1, norm = 0;
+    for (let i = 0; i < oct; i++) { s += a * vnoise(x * f, z * f); norm += a; f *= 2; a *= 0.5; }
+    return s / norm; // 0..1
+  }
+  function smooth(e0, e1, x) { const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0))); return t * t * (3 - 2 * t); }
+
+  // 평원(완만) + 산맥(마스크로 구역 형성)
+  function terrainH(x, z) {
+    const hills = (fbm(x * 0.012, z * 0.012, 4) - 0.5) * 14;           // 완만한 구릉 ±7
+    const maskRaw = fbm(x * 0.0035 + 50, z * 0.0035 + 50, 3);          // 0..1 산맥 구역
+    const mask = smooth(0.52, 0.8, maskRaw);
+    const ridges = Math.pow(fbm(x * 0.02 + 10, z * 0.02 + 10, 5), 1.3);
+    const mountains = mask * ridges * 78;                              // 최대 ~78
+    return hills + mountains + 4; // 기준 높이 살짝
+  }
+
+  function colorFor(h, slope) {
+    // [r,g,b]
+    if (h < 7) return [0.40, 0.66, 0.34];        // 잔디
+    if (h < 16) return [0.47, 0.58, 0.30];       // 풀-올리브
+    if (h < 30) return [0.52, 0.43, 0.31];       // 흙
+    if (h < 48) return [0.50, 0.50, 0.53];       // 바위
+    return [0.93, 0.95, 0.99];                   // 설산
+  }
+
+  const CHUNK = 50, SEG = 24, RAD = 3;
+  const chunks = new Map();
+  function buildChunk(cx, cz) {
+    const geo = new THREE.PlaneGeometry(CHUNK, CHUNK, SEG, SEG);
+    geo.rotateX(-Math.PI / 2);
+    const pos = geo.attributes.position;
+    const ox = cx * CHUNK, oz = cz * CHUNK;
+    const colors = new Float32Array(pos.count * 3);
+    for (let i = 0; i < pos.count; i++) {
+      const wx = pos.getX(i) + ox, wz = pos.getZ(i) + oz;
+      const h = terrainH(wx, wz);
+      pos.setY(i, h);
+      const c = colorFor(h, 0);
+      colors[i * 3] = c[0]; colors[i * 3 + 1] = c[1]; colors[i * 3 + 2] = c[2];
+    }
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geo.computeVertexNormals();
+    const mat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, metalness: 0, flatShading: false });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(ox, 0, oz);
+    scene.add(mesh);
+    chunks.set(cx + ',' + cz, mesh);
+  }
+  function ensureChunks() {
+    const pcx = Math.round(state.pos.x / CHUNK), pcz = Math.round(state.pos.z / CHUNK);
+    for (let dz = -RAD; dz <= RAD; dz++)
+      for (let dx = -RAD; dx <= RAD; dx++) {
+        const key = (pcx + dx) + ',' + (pcz + dz);
+        if (!chunks.has(key)) buildChunk(pcx + dx, pcz + dz);
+      }
+    for (const [key, mesh] of chunks) {
+      const [kx, kz] = key.split(',').map(Number);
+      if (Math.abs(kx - pcx) > RAD + 1 || Math.abs(kz - pcz) > RAD + 1) {
+        scene.remove(mesh); mesh.geometry.dispose(); mesh.material.dispose(); chunks.delete(key);
+      }
+    }
+  }
+
+  // ===================== Player =====================
   const CANDY = [0xff8fc7, 0x8fb6ff, 0x9be7a0, 0xffd36b, 0xc6a3ff, 0x7fe5d8];
-  const tileMat = (i) => new THREE.MeshStandardMaterial({ color: CANDY[i % CANDY.length], roughness: 0.85 });
-  const hazardMat = new THREE.MeshStandardMaterial({ color: 0xff5d7e, roughness: 0.6 });
-  const hazardMat2 = new THREE.MeshStandardMaterial({ color: 0x6a4cff, roughness: 0.6 });
-  const poleMat = new THREE.MeshStandardMaterial({ color: 0xf0f0f5, roughness: 0.5 });
-  const cpMat = new THREE.MeshStandardMaterial({ color: 0x42e6a4, emissive: 0x1f8f5f, emissiveIntensity: 0.4, roughness: 0.4 });
-
-  // ===================== Player (bean) =====================
-  const playerColor = CANDY[Math.floor(Math.random() * CANDY.length)];
-  const beanMat = new THREE.MeshStandardMaterial({ color: playerColor, roughness: 0.6 });
+  const beanMat = new THREE.MeshStandardMaterial({ color: CANDY[Math.floor(Math.random() * CANDY.length)], roughness: 0.55 });
   const player = new THREE.Group();
   (function buildBean() {
-    const body = new THREE.Mesh(new THREE.SphereGeometry(0.6, 24, 20), beanMat);
-    body.scale.set(1, 1.45, 1); body.position.y = 0.85; body.castShadow = true; player.add(body);
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.6, 22, 18), beanMat);
+    body.scale.set(1, 1.45, 1); body.position.y = 0.85; player.add(body);
     const eyeW = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.3 });
     const eyeB = new THREE.MeshStandardMaterial({ color: 0x222233, roughness: 0.3 });
     for (const sx of [-0.22, 0.22]) {
-      const w = new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 14), eyeW);
+      const w = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 12), eyeW);
       w.position.set(sx, 1.25, 0.5); w.scale.set(1, 1.15, 0.6); player.add(w);
-      const b = new THREE.Mesh(new THREE.SphereGeometry(0.07, 12, 12), eyeB);
+      const b = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 10), eyeB);
       b.position.set(sx, 1.25, 0.62); player.add(b);
     }
   })();
-  player.castShadow = true;
   scene.add(player);
 
-  // ===================== Game state =====================
-  const PR = 0.6;          // player horizontal radius
+  // ===================== State =====================
   const state = {
-    running: false, over: false,
-    pos: new THREE.Vector3(0, 0, 0),  // feet position
-    vel: new THREE.Vector3(0, 0, 0),
-    onGround: true, carryTile: null,
-    usedDouble: false, diving: false, sliding: false, slideT: 0,
-    invuln: 0, facing: 0,
-    score: 0, falls: 0, cp: { x: 0, y: 0, z: 0 }, cpCount: 0, time: 0,
+    running: false,
+    pos: new THREE.Vector3(0, 0, 0), vel: new THREE.Vector3(0, 0, 0),
+    onGround: true, usedDouble: false, diving: false, sliding: false, slideT: 0,
+    facing: 0, dist: 0, maxAlt: 0, time: 0, start: new THREE.Vector3(0, 0, 0),
   };
-
-  const GRAV = 26, MOVE = 11, AIR = 0.55, JUMP_V = 11.2;
-  const DIVE_FWD = 13, DIVE_UP = 3.2, SLIDE_TIME = 0.28, KILL_Y = -14;
-  const TILE_W = 9;
-
-  // camera orbit
-  let yaw = 0, pitch = 0.5;
-  const CAM_DIST = 11, CAM_BASE_H = 4;
+  const GRAV = 24, MOVE = 12, AIR = 0.5, JUMP_V = 11.5;
+  const DIVE_FWD = 15, DIVE_UP = 3.6, SLIDE_TIME = 0.28;
+  const MAXSLOPE = 1.5;     // 이보다 가파른 오르막은 걸어서 못 감(점프 필요)
+  const GROUND_SNAP = 0.9;  // 내리막에서 지면에 붙는 허용치
 
   // ===================== Input =====================
-  // 물리 키 코드(e.code) 기반 → 한/영 입력 상태와 무관하게 WASD 동작
   const keys = {};
   let jumpLatched = false;
   window.addEventListener('keydown', (e) => {
     keys[e.code] = true;
     if (e.code === 'Space') { e.preventDefault(); if (!jumpLatched) { jumpLatched = true; tryJump(); } }
   });
-  window.addEventListener('keyup', (e) => {
-    keys[e.code] = false;
-    if (e.code === 'Space') jumpLatched = false;
-  });
+  window.addEventListener('keyup', (e) => { keys[e.code] = false; if (e.code === 'Space') jumpLatched = false; });
 
-  // 마우스 시점: 클릭 없이 '움직이기만' 하면 회전 (포인터 잠금 + movement 사용)
-  function rotateBy(dx, dy) {
-    yaw -= dx * 0.0026;
-    pitch += dy * 0.0022;
-    pitch = Math.max(0.12, Math.min(1.15, pitch));
-  }
-  window.addEventListener('mousemove', (e) => {
-    if (!state.running) return;
-    rotateBy(e.movementX || 0, e.movementY || 0);
-  });
-  // 화면 클릭하면 마우스 포인터 잠금(커서 숨김 → 자유 시점). Esc로 해제.
-  canvas.addEventListener('click', () => {
-    if (state.running && canvas.requestPointerLock) canvas.requestPointerLock();
-  });
-  // 터치: 드래그로 시점 회전
+  function rotateBy(dx, dy) { yaw -= dx * 0.0026; pitch += dy * 0.0022; pitch = Math.max(0.12, Math.min(1.2, pitch)); }
+  window.addEventListener('mousemove', (e) => { if (state.running) rotateBy(e.movementX || 0, e.movementY || 0); });
+  canvas.addEventListener('click', () => { if (state.running && canvas.requestPointerLock) canvas.requestPointerLock(); });
   let tLast = null;
   canvas.addEventListener('touchstart', (e) => { tLast = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }, { passive: true });
   window.addEventListener('touchend', () => { tLast = null; });
-  window.addEventListener('touchmove', (e) => {
-    if (!tLast) return;
-    rotateBy(e.touches[0].clientX - tLast.x, e.touches[0].clientY - tLast.y);
-    tLast = { x: e.touches[0].clientX, y: e.touches[0].clientY };
-  }, { passive: true });
+  window.addEventListener('touchmove', (e) => { if (!tLast) return; rotateBy(e.touches[0].clientX - tLast.x, e.touches[0].clientY - tLast.y); tLast = { x: e.touches[0].clientX, y: e.touches[0].clientY }; }, { passive: true });
 
-  function tryJump() {
-    if (!state.running) return;
-    if (state.onGround) {
-      state.vel.y = JUMP_V; state.onGround = false; state.usedDouble = false;
-      state.sliding = false; state.slideT = 0;
-    } else if (!state.usedDouble && !state.diving) {
-      // 더블 점프 = 다이브
-      state.usedDouble = true; state.diving = true;
-      const f = forwardDir();
-      const sp = Math.hypot(state.vel.x, state.vel.z);
-      const dir = sp > 1 ? new THREE.Vector3(state.vel.x, 0, state.vel.z).normalize() : f;
-      state.vel.x = dir.x * DIVE_FWD; state.vel.z = dir.z * DIVE_FWD;
-      state.vel.y = DIVE_UP;
-    }
-  }
+  let yaw = 0, pitch = 0.5;
+  const CAM_DIST = 12, CAM_BASE_H = 5;
 
   function forwardDir() { return new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)); }
   function rightDir() { return new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw)); }
 
-  // ===================== Course generation =====================
-  const tiles = [];     // {mesh, x0,x1,z0,z1, mover, getCx(t), cx, prevCx, topY}
-  const hazards = [];   // {mesh, update(t), hits(px,py,pz), knock(px,pz)->Vector3}
-  const checkpoints = [];
-  const decos = [];
-  let zCursor = 0, moduleCount = 0;
-  const CYCLE = ['sweeper', 'gap', 'pendulum', 'movers', 'pushers', 'sweeper', 'gap', 'pendulum'];
-
-  function addTile(x, z0, z1, w, colorI, mover) {
-    const len = z1 - z0, cx = x;
-    const geo = new THREE.BoxGeometry(w, 1.4, len);
-    const mesh = new THREE.Mesh(geo, tileMat(colorI));
-    mesh.position.set(cx, -0.7, (z0 + z1) / 2);
-    mesh.receiveShadow = true; scene.add(mesh);
-    const t = {
-      mesh, w, z0, z1, baseX: cx, cx, prevCx: cx, topY: 0, mover: !!mover,
-      amp: mover ? (TILE_W * 0.5) : 0, phase: Math.random() * 6.28, w2: 0.9 + Math.random() * 0.3,
-    };
-    tiles.push(t); return t;
-  }
-
-  function addCheckpoint(z) {
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.3, 0.16, 10, 24), cpMat);
-    ring.position.set(0, 0.05, z); ring.rotation.x = Math.PI / 2; scene.add(ring);
-    decos.push(ring);
-    checkpoints.push({ x: 0, y: 0, z, ring, passed: false });
-  }
-
-  function addModule() {
-    const i = moduleCount++;
-    const diff = Math.min(1 + i * 0.05, 2.3);
-    let type = i < 2 ? 'flat' : CYCLE[(i - 2) % CYCLE.length];
-    const len = type === 'movers' ? 13 : 17;
-    let gap = 0;
-    if (type === 'gap') gap = Math.min(3.5 + i * 0.12, 6.5);
-
-    const z0 = zCursor + gap;
-    const z1 = z0 + len;
-    const cz = (z0 + z1) / 2;
-    const colorI = i;
-
-    if (type === 'movers') {
-      addTile(0, z0, z1, TILE_W * 0.7, colorI, true);
-    } else {
-      addTile(0, z0, z1, TILE_W, colorI, false);
+  function tryJump() {
+    if (!state.running) return;
+    if (state.onGround) {
+      state.vel.y = JUMP_V; state.onGround = false; state.usedDouble = false; state.sliding = false; state.slideT = 0;
+    } else if (!state.usedDouble && !state.diving) {
+      state.usedDouble = true; state.diving = true;
+      const sp = Math.hypot(state.vel.x, state.vel.z);
+      const dir = sp > 1 ? new THREE.Vector3(state.vel.x, 0, state.vel.z).normalize() : forwardDir();
+      state.vel.x = dir.x * DIVE_FWD; state.vel.z = dir.z * DIVE_FWD; state.vel.y = DIVE_UP;
     }
-    addCheckpoint(z0 + 1.5);
-
-    const mod = { type, z0, z1, hazards: [], tiles: [], checkpointZ: z0 + 1.5 };
-
-    if (type === 'sweeper') {
-      // 낮게 회전하는 바 — 점프로 넘기
-      const barLen = TILE_W - 0.6, barH = 0.9;
-      const bar = new THREE.Mesh(new THREE.BoxGeometry(barLen, 0.5, 0.7), hazardMat);
-      bar.position.set(0, barH, cz); bar.castShadow = true; scene.add(bar);
-      const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, barH + 0.5, 12), poleMat);
-      hub.position.set(0, (barH + 0.5) / 2, cz); scene.add(hub);
-      const w = (1.6 + diff * 0.7) * (Math.random() < 0.5 ? 1 : -1);
-      const hz = {
-        mesh: bar, extra: hub,
-        update: (t) => { bar.rotation.y = t * w; },
-        hits: (px, py, pz) => {
-          if (py > barH + 0.5) return false;           // 충분히 점프하면 통과
-          const dx = px - 0, dz = pz - cz;
-          const a = -bar.rotation.y;
-          const lx = dx * Math.cos(a) - dz * Math.sin(a);
-          const lz = dx * Math.sin(a) + dz * Math.cos(a);
-          return Math.abs(lx) < barLen / 2 + PR && Math.abs(lz) < 0.55 + PR;
-        },
-        knock: (px, pz) => {
-          // 바의 진행 방향(접선)으로 밀기
-          const tan = new THREE.Vector3(Math.cos(bar.rotation.y) * (w > 0 ? -1 : 1), 0, Math.sin(bar.rotation.y) * (w > 0 ? -1 : 1));
-          return tan.normalize();
-        }
-      };
-      hazards.push(hz); mod.hazards.push(hz);
-    } else if (type === 'pendulum') {
-      // 좌우로 흔들리는 추 2개 — 옆으로 피하거나 타이밍
-      const n = i > 6 ? 2 : 1;
-      for (let k = 0; k < n; k++) {
-        const pz = cz + (k - (n - 1) / 2) * 6;
-        const pivotY = 5.2;
-        const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4.6, 8), poleMat);
-        const ball = new THREE.Mesh(new THREE.SphereGeometry(0.95, 18, 16), hazardMat2);
-        ball.castShadow = true;
-        const pivot = new THREE.Group();
-        pivot.position.set(0, pivotY, pz);
-        arm.position.y = -2.3; pivot.add(arm);
-        ball.position.y = -4.6; pivot.add(ball);
-        scene.add(pivot);
-        const w = (1.4 + diff * 0.5), ph = Math.random() * 6.28, swing = 1.05;
-        const hz = {
-          mesh: pivot,
-          update: (t) => { pivot.rotation.z = Math.sin(t * w + ph) * swing; },
-          hits: (px, py, pz2) => {
-            const bx = Math.sin(pivot.rotation.z) * 4.6;   // ball world x
-            const by = pivotY - Math.cos(pivot.rotation.z) * 4.6;
-            return Math.abs(px - bx) < 0.95 + PR && Math.abs(pz2 - pz) < 0.95 + PR && Math.abs((py + 0.85) - by) < 1.3;
-          },
-          knock: (px) => {
-            const bx = Math.sin(pivot.rotation.z) * 4.6;
-            return new THREE.Vector3(px - bx >= 0 ? 1 : -1, 0, 0);
-          }
-        };
-        hazards.push(hz); mod.hazards.push(hz);
-      }
-    } else if (type === 'pushers') {
-      // 옆에서 튀어나와 미는 블록
-      const n = 2;
-      for (let k = 0; k < n; k++) {
-        const pz = z0 + 4 + k * 7;
-        const side = k % 2 === 0 ? -1 : 1;
-        const block = new THREE.Mesh(new THREE.BoxGeometry(3.2, 2.2, 2.0), hazardMat);
-        block.castShadow = true; scene.add(block);
-        const w = 1.3 + diff * 0.45, ph = Math.random() * 6.28, reach = TILE_W * 0.42;
-        const hz = {
-          mesh: block,
-          update: (t) => {
-            const ext = (Math.sin(t * w + ph) * 0.5 + 0.5) * reach;
-            block.position.set(side * (TILE_W / 2 + 1.6 - ext), 1.1, pz);
-          },
-          hits: (px, py, pz2) => {
-            if (py > 2.2) return false;
-            return Math.abs(px - block.position.x) < 1.6 + PR && Math.abs(pz2 - pz) < 1.0 + PR;
-          },
-          knock: () => new THREE.Vector3(side, 0, 0)   // 안쪽으로 미는 반대 = 바깥쪽
-        };
-        hazards.push(hz); mod.hazards.push(hz);
-      }
-    }
-    // 'flat','gap','movers' 는 추가 해저드 없음 (지형 자체가 도전)
-
-    zCursor = z1;
-    modulesList.push(mod);
-  }
-
-  const modulesList = [];
-
-  function ensureCourse() {
-    while (zCursor < state.pos.z + 130) addModule();
-    // 뒤쪽 정리
-    const cutZ = state.pos.z - 40;
-    while (tiles.length && tiles[0].z1 < cutZ) { const t = tiles.shift(); scene.remove(t.mesh); t.mesh.geometry.dispose(); }
-    while (hazards.length && hazards[0].mesh.position.z < cutZ - 5) {
-      const h = hazards.shift(); scene.remove(h.mesh); if (h.extra) scene.remove(h.extra);
-    }
-    while (decos.length && decos[0].position.z < cutZ) { const d = decos.shift(); scene.remove(d); }
-    while (checkpoints.length > 1 && checkpoints[1].z < cutZ) checkpoints.shift();
-  }
-
-  // ===================== Ground / physics =====================
-  function groundInfo(px, pz) {
-    let best = -Infinity, tile = null;
-    for (const t of tiles) {
-      const halfW = t.w / 2;
-      if (px >= t.cx - halfW - PR && px <= t.cx + halfW + PR && pz >= t.z0 && pz <= t.z1) {
-        if (t.topY > best) { best = t.topY; tile = t; }
-      }
-    }
-    return { y: best, tile };
-  }
-
-  function respawn() {
-    const cp = state.cp;
-    state.pos.set(cp.x, cp.y + 0.2, cp.z);
-    state.vel.set(0, 0, 0);
-    state.onGround = true; state.usedDouble = false; state.diving = false; state.sliding = false; state.slideT = 0;
-    state.invuln = 1.1; state.falls++;
-    document.getElementById('fallTag').textContent = state.falls;
-    showToast('체크포인트에서 다시!');
   }
 
   let toastT = 0;
-  function showToast(msg) {
-    const el = document.getElementById('toast'); el.textContent = msg; el.classList.add('show'); toastT = 1.2;
-  }
+  function showToast(m) { const el = document.getElementById('toast'); el.textContent = m; el.classList.add('show'); toastT = 1.2; }
 
   // ===================== Update =====================
   function update(dt) {
     state.time += dt;
     if (toastT > 0) { toastT -= dt; if (toastT <= 0) document.getElementById('toast').classList.remove('show'); }
 
-    // tiles 이동(무빙 플랫폼)
-    for (const t of tiles) {
-      t.prevCx = t.cx;
-      if (t.mover) t.cx = t.baseX + Math.sin(state.time * t.w2 + t.phase) * t.amp;
-      t.mesh.position.x = t.cx;
-    }
-    // hazards 갱신
-    for (const h of hazards) h.update(state.time);
-
-    if (state.running && !state.over) {
-      // --- 입력(카메라 상대) ---
+    if (state.running) {
       let ix = 0, iz = 0;
       if (keys['KeyW'] || keys['ArrowUp']) iz += 1;
       if (keys['KeyS'] || keys['ArrowDown']) iz -= 1;
@@ -418,152 +246,101 @@
       if (ml > 0) { mvx /= ml; mvz /= ml; state.facing = Math.atan2(mvx, mvz); }
 
       if (state.sliding) {
-        // 슬라이딩: 입력 무시, 마찰 감속
         state.vel.x *= (1 - 3.0 * dt); state.vel.z *= (1 - 3.0 * dt);
-        state.slideT -= dt;
-        if (state.slideT <= 0 && state.onGround) state.sliding = false;
+        state.slideT -= dt; if (state.slideT <= 0 && state.onGround) state.sliding = false;
       } else if (state.onGround) {
         state.vel.x = mvx * MOVE; state.vel.z = mvz * MOVE;
       } else {
-        // 공중 제어(약하게)
-        state.vel.x += mvx * MOVE * AIR * dt * 6;
-        state.vel.z += mvz * MOVE * AIR * dt * 6;
+        state.vel.x += mvx * MOVE * AIR * dt * 6; state.vel.z += mvz * MOVE * AIR * dt * 6;
         const hsp = Math.hypot(state.vel.x, state.vel.z), cap = state.diving ? DIVE_FWD : MOVE * 1.2;
         if (hsp > cap) { state.vel.x *= cap / hsp; state.vel.z *= cap / hsp; }
       }
 
-      // 중력
       state.vel.y -= GRAV * dt;
 
-      // 적분
-      state.pos.x += state.vel.x * dt;
-      state.pos.y += state.vel.y * dt;
-      state.pos.z += state.vel.z * dt;
-
-      // 무빙 플랫폼 위에 있으면 같이 이동
-      if (state.onGround && state.carryTile && state.carryTile.mover) {
-        state.pos.x += (state.carryTile.cx - state.carryTile.prevCx);
+      // 수평 이동 + 경사 등반 제한
+      const px = state.pos.x, pz = state.pos.z;
+      let nx = px + state.vel.x * dt, nz = pz + state.vel.z * dt;
+      const horiz = Math.hypot(nx - px, nz - pz);
+      if (state.onGround && horiz > 1e-4) {
+        const gCur = terrainH(px, pz), gNew = terrainH(nx, nz);
+        const slope = (gNew - gCur) / horiz;
+        if (slope > MAXSLOPE) {           // 너무 가파른 오르막 → 막힘(점프해서 올라야 함)
+          nx = px; nz = pz; state.vel.x *= 0.15; state.vel.z *= 0.15;
+        }
       }
+      state.dist += Math.hypot(nx - px, nz - pz);
+      state.pos.x = nx; state.pos.z = nz;
+      state.pos.y += state.vel.y * dt;
 
       // 지면 처리
-      const g = groundInfo(state.pos.x, state.pos.z);
-      if (g.tile && state.pos.y <= g.y + 0.001 && state.vel.y <= 0) {
-        state.pos.y = g.y; state.vel.y = 0;
+      const gy = terrainH(state.pos.x, state.pos.z);
+      if (state.vel.y <= 0 && state.pos.y <= gy + GROUND_SNAP) {
         if (!state.onGround && state.diving) { state.diving = false; state.sliding = true; state.slideT = SLIDE_TIME; }
-        state.onGround = true; state.usedDouble = false; state.carryTile = g.tile;
-      } else if (g.tile && state.pos.y <= g.y + 0.12) {
-        state.onGround = true; state.carryTile = g.tile;
+        state.pos.y = gy; state.vel.y = 0; state.onGround = true; state.usedDouble = false;
       } else {
-        state.onGround = false; state.carryTile = null;
+        state.onGround = false;
       }
 
-      // 해저드 충돌 → 넉백
-      if (state.invuln > 0) state.invuln -= dt;
-      else {
-        for (const h of hazards) {
-          if (Math.abs(h.mesh.position.z - state.pos.z) > 14) continue;
-          if (h.hits(state.pos.x, state.pos.y, state.pos.z)) {
-            const k = h.knock(state.pos.x, state.pos.z);
-            state.vel.x = k.x * 13; state.vel.z = k.z * 13; state.vel.y = 7.5;
-            state.onGround = false; state.invuln = 0.6; state.sliding = false; state.diving = false;
-            showToast('펑!');
-            break;
-          }
-        }
-      }
+      // HUD
+      const distM = Math.floor(state.dist);
+      const alt = Math.floor(state.pos.y);
+      if (alt > state.maxAlt) { state.maxAlt = alt; document.getElementById('maxAltTag').textContent = alt; }
+      document.getElementById('distTag').textContent = distM;
+      document.getElementById('altTag').textContent = alt;
 
-      // 추락 시 부활
-      if (state.pos.y < KILL_Y) respawn();
-
-      // 체크포인트 통과 (배열 인덱스 대신 passed 플래그 → 재활용에 안전)
-      for (const c of checkpoints) {
-        if (!c.passed && state.pos.z >= c.z) {
-          c.passed = true;
-          state.cp = { x: c.x, y: c.y, z: c.z };
-          state.cpCount++;
-          document.getElementById('cpTag').textContent = state.cpCount;
-        }
-      }
-
-      // 점수(거리)
-      if (state.pos.z > state.score) {
-        state.score = state.pos.z;
-        document.getElementById('distTag').textContent = Math.floor(state.score);
-      }
-
-      ensureCourse();
+      ensureChunks();
     }
 
-    // ---- 플레이어 메쉬 반영 ----
+    // 플레이어 메쉬 + 자세
     player.position.set(state.pos.x, state.pos.y, state.pos.z);
-    // 자세
-    let targetRotX = 0, targetSquashY = 1;
-    if (state.sliding) { targetRotX = Math.PI / 2 * 0.8; targetSquashY = 0.6; }
-    else if (state.diving) { targetRotX = Math.PI / 2 * 0.6; }
-    player.rotation.x += (targetRotX - player.rotation.x) * Math.min(1, dt * 14);
-    player.scale.y += (targetSquashY - player.scale.y) * Math.min(1, dt * 12);
-    // 바라보는 방향
+    let targRotX = 0, targSY = 1;
+    if (state.sliding) { targRotX = Math.PI / 2 * 0.8; targSY = 0.6; }
+    else if (state.diving) { targRotX = Math.PI / 2 * 0.6; }
+    player.rotation.x += (targRotX - player.rotation.x) * Math.min(1, dt * 14);
+    player.scale.y += (targSY - player.scale.y) * Math.min(1, dt * 12);
     player.rotation.y += (state.facing - player.rotation.y) * Math.min(1, dt * 10);
 
-    // ---- 카메라 ----
+    // 카메라
     const off = new THREE.Vector3(
       -Math.sin(yaw) * Math.cos(pitch) * CAM_DIST,
       Math.sin(pitch) * CAM_DIST + CAM_BASE_H,
       -Math.cos(yaw) * Math.cos(pitch) * CAM_DIST
     );
-    const camTarget = new THREE.Vector3(state.pos.x, state.pos.y + 1.2, state.pos.z).add(off);
+    const camTarget = new THREE.Vector3(state.pos.x, state.pos.y + 1.4, state.pos.z).add(off);
     if (!camera.userData.init) { camera.position.copy(camTarget); camera.userData.init = true; }
     camera.position.lerp(camTarget, Math.min(1, dt * 6));
-    camera.lookAt(state.pos.x, state.pos.y + 1.0, state.pos.z);
-
-    // 태양 그림자 따라가기
-    sun.position.set(state.pos.x + 20, 40, state.pos.z + 20);
-    sun.target.position.set(state.pos.x, 0, state.pos.z);
+    camera.lookAt(state.pos.x, state.pos.y + 1.2, state.pos.z);
+    sun.position.set(state.pos.x + 60, state.pos.y + 120, state.pos.z + 40);
   }
 
   // ===================== Flow =====================
-  function resetCourse() {
-    for (const t of tiles) { scene.remove(t.mesh); t.mesh.geometry.dispose(); }
-    for (const h of hazards) { scene.remove(h.mesh); if (h.extra) scene.remove(h.extra); }
-    for (const d of decos) scene.remove(d);
-    tiles.length = 0; hazards.length = 0; decos.length = 0; checkpoints.length = 0; modulesList.length = 0;
-    zCursor = 0; moduleCount = 0;
-  }
+  function clearChunks() { for (const [k, m] of chunks) { scene.remove(m); m.geometry.dispose(); m.material.dispose(); } chunks.clear(); }
 
   function restart() {
-    resetCourse();
-    state.running = true; state.over = false;
-    state.pos.set(0, 0.2, 0); state.vel.set(0, 0, 0);
-    state.onGround = true; state.usedDouble = false; state.diving = false; state.sliding = false;
-    state.invuln = 0.6; state.score = 0; state.falls = 0; state.cp = { x: 0, y: 0, z: 0 }; state.cpCount = 0; state.time = 0;
+    clearChunks();
+    const h0 = terrainH(0, 0);
+    state.running = true;
+    state.pos.set(0, h0 + 0.2, 0); state.vel.set(0, 0, 0);
+    state.onGround = true; state.usedDouble = false; state.diving = false; state.sliding = false; state.slideT = 0;
+    state.dist = 0; state.maxAlt = Math.floor(h0); state.time = 0;
     yaw = 0; pitch = 0.5; camera.userData.init = false;
     document.getElementById('distTag').textContent = '0';
-    document.getElementById('cpTag').textContent = '0';
-    document.getElementById('fallTag').textContent = '0';
-    // 시작 발판 확보
-    addTile(0, -3, 2, TILE_W, 0, false);
-    addCheckpoint(0);
-    ensureCourse();
+    document.getElementById('altTag').textContent = Math.floor(h0);
+    document.getElementById('maxAltTag').textContent = Math.floor(h0);
+    ensureChunks();
     document.getElementById('startScreen').classList.add('hidden');
     document.getElementById('hud').classList.remove('hidden');
     if (canvas.requestPointerLock) canvas.requestPointerLock();
   }
-
   document.getElementById('startBtn').addEventListener('click', restart);
 
   // ===================== Loop =====================
   const clock = new THREE.Clock();
-  function loop() {
-    const dt = Math.min(clock.getDelta(), 0.05);
-    update(dt);
-    renderer.render(scene, camera);
-    requestAnimationFrame(loop);
-  }
+  function loop() { const dt = Math.min(clock.getDelta(), 0.05); update(dt); renderer.render(scene, camera); requestAnimationFrame(loop); }
 
-  // 초기 미리보기 코스
-  addTile(0, -3, 2, TILE_W, 0, false);
-  addCheckpoint(0);
-  ensureCourse();
+  // 시작 전 미리보기
+  ensureChunks();
   loop();
 })();
 </script>
