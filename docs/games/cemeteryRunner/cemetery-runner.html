@@ -481,7 +481,8 @@
       if (keys['w'] || keys['arrowup']) fwd *= 1.45;
       if (keys['s'] || keys['arrowdown']) fwd *= 0.55;
       state.d += fwd * dt;
-      state.score += state.speed * dt * 0.12;
+      // 점수 = 실제 이동 거리 기반(fwd). S로 감속하면 점수도 천천히 오른다.
+      state.score += fwd * dt * 0.12;
 
       // smooth lateral movement (A/D), velocity-based glide
       let ix = 0;
@@ -548,8 +549,12 @@
     if (state.running) {
       while (nextSpawnD < state.d + 150) {
         spawnAt(nextSpawnD, chooseType());
-        const gap = THREE.MathUtils.clamp(120 / state.speed * 1.6, 4.5, 11);
-        nextSpawnD += gap + Math.random() * 3;
+        // 간격을 "반응 시간" 기준으로 잡는다: 간격 = 속도 × 반응시간.
+        // 난이도(t)가 올라도 반응시간을 1.3초→0.6초로만 줄여 후반에도 피할 수 있게 한다.
+        const t = THREE.MathUtils.clamp((state.speed - state.baseSpeed) / (state.maxSpeed - state.baseSpeed), 0, 1);
+        const reaction = 1.3 - 0.7 * t;            // 1.3s (초반) → 0.6s (후반)
+        const gap = THREE.MathUtils.clamp(state.speed * reaction, 11, 36);
+        nextSpawnD += gap + Math.random() * 4;
       }
     }
 
