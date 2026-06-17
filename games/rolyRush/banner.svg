@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 560" width="1600" height="560" role="img" aria-label="롤리폴리 러시">
+  <defs>
+    <linearGradient id="bsky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#aee6ff"/>
+      <stop offset="1" stop-color="#e9c8ff"/>
+    </linearGradient>
+    <linearGradient id="btitle" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff7ac3"/>
+      <stop offset="0.5" stop-color="#7a9bff"/>
+      <stop offset="1" stop-color="#5fe0c0"/>
+    </linearGradient>
+    <linearGradient id="bplat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd36b"/>
+      <stop offset="1" stop-color="#ff9e4a"/>
+    </linearGradient>
+    <filter id="bsoft" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="8"/></filter>
+  </defs>
+
+  <rect width="1600" height="560" fill="url(#bsky)"/>
+
+  <g fill="#ffffff" opacity="0.85">
+    <ellipse cx="1180" cy="120" rx="90" ry="40"/>
+    <ellipse cx="1250" cy="108" rx="62" ry="32"/>
+    <ellipse cx="950" cy="180" rx="70" ry="34"/>
+  </g>
+
+  <!-- 회전 바 장애물 -->
+  <g transform="translate(1180 330) rotate(-16)">
+    <rect x="-190" y="-15" width="380" height="30" rx="15" fill="#ff5d7e"/>
+    <circle cx="0" cy="0" r="26" fill="#ffffff"/>
+  </g>
+
+  <!-- 펜듈럼 추 -->
+  <g stroke="#cfcfe0" stroke-width="5">
+    <line x1="1420" y1="40" x2="1460" y2="250"/>
+  </g>
+  <circle cx="1460" cy="270" r="36" fill="#6a4cff"/>
+
+  <!-- 플랫폼 -->
+  <rect x="0" y="430" width="1600" height="130" fill="url(#bplat)"/>
+  <g fill="#ffffff" opacity="0.45">
+    <rect x="120" y="446" width="34" height="84" rx="10"/>
+    <rect x="320" y="446" width="34" height="84" rx="10"/>
+    <rect x="520" y="446" width="34" height="84" rx="10"/>
+    <rect x="980" y="446" width="34" height="84" rx="10"/>
+    <rect x="1180" y="446" width="34" height="84" rx="10"/>
+    <rect x="1380" y="446" width="34" height="84" rx="10"/>
+  </g>
+
+  <!-- 콩 캐릭터 -->
+  <g transform="translate(870 360)">
+    <ellipse cx="0" cy="92" rx="66" ry="20" fill="#000000" opacity="0.12" filter="url(#bsoft)"/>
+    <ellipse cx="0" cy="0" rx="66" ry="92" fill="#8fb6ff" stroke="#5f8fe8" stroke-width="6"/>
+    <rect x="-36" y="74" width="24" height="46" rx="12" fill="#8fb6ff" stroke="#5f8fe8" stroke-width="4" transform="rotate(14 -24 97)"/>
+    <rect x="12" y="74" width="24" height="46" rx="12" fill="#8fb6ff" stroke="#5f8fe8" stroke-width="4" transform="rotate(-16 24 97)"/>
+    <ellipse cx="-22" cy="-18" rx="17" ry="21" fill="#fff"/>
+    <ellipse cx="22" cy="-18" rx="17" ry="21" fill="#fff"/>
+    <circle cx="-18" cy="-14" r="8" fill="#2a2350"/>
+    <circle cx="26" cy="-14" r="8" fill="#2a2350"/>
+    <path d="M-16 32 q16 13 32 0" stroke="#3a5fb0" stroke-width="6" fill="none" stroke-linecap="round"/>
+  </g>
+
+  <!-- 타이틀 -->
+  <g font-family="'Black Han Sans','Apple SD Gothic Neo','Malgun Gothic',sans-serif">
+    <text x="90" y="250" font-size="122" font-weight="900" fill="url(#btitle)">롤리폴리 러시</text>
+    <text x="96" y="320" font-size="40" font-weight="700" letter-spacing="16" fill="#7a6fb0" font-family="Arial,Helvetica,sans-serif">ROLY RUSH</text>
+    <text x="98" y="372" font-size="26" font-weight="400" fill="#5a5580" font-family="'Apple SD Gothic Neo','Malgun Gothic',sans-serif">장애물을 피해 끝없이 달리는 3D 점프 코스</text>
+  </g>
+</svg>

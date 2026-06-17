@@ -1,6 +1,23 @@
 {
   "games": [
     {
+      "id": "rolyRush",
+      "title": "롤리폴리 러시",
+      "subtitle": "3D 무한 장애물 코스",
+      "heroTag": "신작 출시",
+      "description": "폴가이즈 스타일 3D 장애물 코스를 끝없이 달리세요! 회전 바·흔들리는 추·이동 발판·갭을 점프와 더블점프 다이브로 돌파하고, 떨어지면 체크포인트에서 부활합니다.",
+      "genre": "아케이드",
+      "tags": ["3D", "플랫포머", "아케이드"],
+      "thumbnail": "games/rolyRush/logo.svg",
+      "banner": "games/rolyRush/banner.svg",
+      "playUrl": "games/rolyRush/roly-rush.html",
+      "releaseDate": "2026-06-17",
+      "rating": "전체이용가",
+      "featured": true,
+      "isNew": true,
+      "enabled": true
+    },
+    {
       "id": "cemeteryRunner",
       "title": "공동묘지 러너",
       "subtitle": "끝없는 3D 러닝",
